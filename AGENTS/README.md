@@ -1,13 +1,14 @@
-# Tools
+# AGENTS
 
 Self-described workspace, initialized by `SelfConstructor.sh`.
 
-- Folder: /home/user/arenaRepo001/SRC/Tools
-- Self description: [Tools.md](Tools.md)
+- Folder: /home/user/arenaRepo001/AGENTS
+- Self description: [agents.md](agents.md)
 
 ## Contents
 
-- Tools.md
+- 19082026221404.md
+- agents.md
 
 ## Last updated
 

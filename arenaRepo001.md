@@ -21,13 +21,14 @@ Self-constructed description of the **arenaRepo001** workspace.
 | `TEST/` | [TEST.md](TEST/TEST.md) | [README.md](TEST/README.md) |
 | `TEST/<ddmmaaaaHHMMSS>/` | [19082026223433.md](TEST/19082026223433/19082026223433.md) | [README.md](TEST/19082026223433/README.md) |
 | `SRC/Tools/` | [Tools.md](SRC/Tools/Tools.md) | [README.md](SRC/Tools/README.md) |
-| `AGENTS/` | [agents.md](AGENTS/agents.md) | snapshots `AGENTS/<ddmmaaaaHHMMSS>.md` |
+| `AGENTS/` | [agents.md](AGENTS/agents.md) | [README.md](AGENTS/README.md) + snapshots `AGENTS/<ddmmaaaaHHMMSS>.md` |
 | `arenaRepo001-<ddmmaaaaHHMMSS>/` | `<name>.md` | `README.md` (auto-named) |
 
 ## Update
 
 - **Updated by:** `SelfDescriberRepo().Update({$thisRepo})`
-- **Last updated:** 2026-08-19T22:41:12Z (added `MyTest/`, fixed `TEST/` timestamp to `ddmmaaaaHHMMSS`)
+- **Last updated:** 2026-08-19T22:52:14Z — `Actualizar(para todo [nameOfFolder.md] OF README.md)`
+  (all workspace `README.md` files re-synced via `./SelfConstructor.sh --sync-readmes`)
 
 ## Rebuild
 

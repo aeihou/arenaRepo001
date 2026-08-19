@@ -11,6 +11,7 @@
 #     if (Not)nameOfFolder then
 #         mkdir("nameOfFolder: ddmmaaaaHHMMSS").selfConstructor("$Name_Folder");
 #     SelfConstructor.sh --NameOfFolder:MyTest
+#     Actualizar(para todo [nameOfFolder.md] OF README.md);
 #
 # into a parametrizable POSIX sh script. On first run it:
 #   1. initWorkspace()   -> ensures the target folder exists
@@ -24,6 +25,9 @@
 #                           self-construct it under that name
 #   6. mkNameOfFolder()  -> --NameOfFolder NAME: mkdir(NAME) and self-construct
 #                           the workspace under that folder name
+#   7. syncReadmes()     -> Actualizar(para todo [nameOfFolder.md] OF README.md):
+#                           for every folder carrying a <nameOfFolder>.md, (re)generate
+#                           its README.md from the current workspace state
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
@@ -34,6 +38,7 @@
 #       --auto-name           if no --name given, mkdir a timestamped folder
 #       --name-sep SEP        auto-name separator (default "-"; ":" matches the
 #                             literal "nameOfFolder: ddmmaaaaHHMMSS" template)
+#       --sync-readmes        update every README.md from its <name>.md (batch)
 #   -f, --filename FILE       self-description file   (env: SELF_FILENAME)
 #       --readme FILE         readme file name        (default: README.md)
 #       --force               rebuild even if already constructed
@@ -47,6 +52,7 @@
 #   ./SelfConstructor.sh --dir . --name myProject --filename "[myProject].md"
 #   ./SelfConstructor.sh --dir SRC --auto-name --name-sep ':'
 #   ./SelfConstructor.sh --NameOfFolder:MyTest
+#   ./SelfConstructor.sh --sync-readmes
 # ==============================================================================
 
 set -eu
@@ -59,6 +65,7 @@ SELF_README="${SELF_README:-README.md}"
 SELF_MARKER="${SELF_MARKER:-.selfconstructor.rc}"
 SELF_AUTO_NAME="${SELF_AUTO_NAME:-0}"
 SELF_MKNAME="${SELF_MKNAME:-0}"
+SELF_SYNC="${SELF_SYNC:-0}"
 SELF_NAME_SEP="${SELF_NAME_SEP:--}"
 SELF_FORCE="${SELF_FORCE:-0}"
 SELF_QUIET="${SELF_QUIET:-0}"
@@ -192,6 +199,54 @@ Self-constructed description of the **$name** workspace.
 EOF
 }
 
+# writeReadme(dir, name)
+#   (Re)generates the README.md for a single self-described workspace.
+writeReadme() {
+    d="$1"; name="$2"
+    stamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    tmp="$d/.README.tmp.$$"
+    {
+        printf '# %s\n\n' "$name"
+        printf 'Self-described workspace, initialized by `SelfConstructor.sh`.\n\n'
+        printf -- '- Folder: %s\n' "$d"
+        printf -- '- Self description: [%s.md](%s.md)\n\n' "$name" "$name"
+        printf '## Contents\n\n'
+        for e in "$d"/*; do
+            [ -e "$e" ] || continue
+            b=$(basename "$e")
+            case "$b" in
+                "$SELF_README") continue ;;
+            esac
+            if [ -d "$e" ]; then
+                printf -- '- %s/\n' "$b"
+            else
+                printf -- '- %s\n' "$b"
+            fi
+        done
+        printf '\n## Last updated\n\n- %s\n\n' "$stamp"
+        printf '## Usage\n\n    ./SelfConstructor.sh --help\n'
+    } > "$tmp"
+    mv "$tmp" "$d/$SELF_README"
+    say "updated $d/$SELF_README"
+}
+
+# syncReadmes([root])
+#   Actualizar(para todo [nameOfFolder.md] OF README.md)
+#   Walks the workspace tree (skipping .git) and, for every folder that carries
+#   a <nameOfFolder>.md self-description, (re)generates its README.md.
+syncReadmes() {
+    root="${1:-$SELF_DIR}"
+    [ -n "$root" ] || root="$PWD"
+    find "$root" -name .git -prune -o -type d -print | sort \
+    | while IFS= read -r d; do
+        name=$(basename "$d")
+        selfdesc="$d/$name.md"
+        if [ -f "$selfdesc" ]; then
+            writeReadme "$d" "$name"
+        fi
+    done
+}
+
 # ---- Argument parsing ---------------------------------------------------------
 parse_args() {
     while [ "$#" -gt 0 ]; do
@@ -205,6 +260,7 @@ parse_args() {
             --NameOfFolder=*)    SELF_NAME="${1#*=}"; SELF_MKNAME=1; shift ;;
             --NameOfFolder:*)    SELF_NAME="${1#*:}"; SELF_MKNAME=1; shift ;;
             --auto-name)     SELF_AUTO_NAME=1; shift ;;
+            --sync-readmes)  SELF_SYNC=1; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
             --name-sep=*)    SELF_NAME_SEP="${1#*=}"; shift ;;
             -f|--filename)   [ "$#" -ge 2 ] || die "missing value for $1"; SELF_FILENAME="$2"; shift 2 ;;
@@ -234,6 +290,12 @@ main() {
     [ -n "$SELF_DIR" ] || SELF_DIR="$PWD"
     mkdir -p "$SELF_DIR"
     SELF_DIR=$(cd "$SELF_DIR" && pwd)
+
+    # Actualizar(para todo [nameOfFolder.md] OF README.md)
+    if [ "$SELF_SYNC" -eq 1 ]; then
+        syncReadmes "$SELF_DIR"
+        exit 0
+    fi
 
     # if (Not) nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")
     autoNameIfNeeded
