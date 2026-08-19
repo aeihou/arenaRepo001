@@ -27,6 +27,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 | `AGENTS/agents.md` | This agent registry |
 | `AGENTS/<ddmmaaaaHHMMSS>.md` | Timestamped self-construction snapshots |
 | `SRC/Tools/` | Self-constructed tools workspace (`Tools.md`, `README.md`) |
+| `arenaRepo001-<ddmmaaaaHHMMSS>/` | Auto-named workspace (created when no `--name` is given) |
 | `.selfconstructor.rc` | First-run marker (gitignored) |
 
 ## Snapshots
@@ -42,7 +43,8 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Idempotency:** constructors skip work when a marker exists; use `--force`.
 - **Git:** work only on the session branch; push to `origin`.
 - **Pseudocode primitives:** `initWorkspace()`, `initSession()`,
-  `selfConstructor()`, `nameOfFolder().newFile()`, `newSession.Reload()`.
+  `selfConstructor()`, `nameOfFolder().newFile()`, `newSession.Reload()`,
+  `autoNameIfNeeded()` (`if (Not)nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")`).
 
 ## Quick reference
 
@@ -50,4 +52,6 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 ./SelfConstructor.sh --help        # show usage
 ./SelfConstructor.sh               # first run (self-construct)
 ./SelfConstructor.sh --force       # rebuild
+./SelfConstructor.sh --auto-name   # no name -> mkdir "<name>-<ddmmaaaaHHMMSS>"
+./SelfConstructor.sh --auto-name --name-sep ':'   # literal "name: timestamp"
 ```
