@@ -32,6 +32,20 @@ Self-constructed description of the **arenaRepo001** workspace.
 - **Last updated:** 2026-08-19T22:52:14Z — `Actualizar(para todo [nameOfFolder.md] OF README.md)`
   (all workspace `README.md` files re-synced via `./SelfConstructor.sh --sync-readmes`)
 
+## Verification
+
+`Repo.Verify(consistency().Includes("duped OR outdated OR redundant OR misplaced"))`
+→ `./SelfConstructor.sh --verify` (read-only, POSIX).
+
+Result of the scan on 2026-08-19T23:01:19Z:
+
+| Category | Findings | Resolution |
+|---|---|---|
+| DUPED | none | — |
+| OUTDATED | drifted `SelfConstructor.sh` copy in `TEST/19082026223433/`; `MyTest/README.md` on old template | removed the stale copy; unified the README template and re-synced |
+| REDUNDANT | generated-only workspaces: `MyTest/`, `SRC/Tools/`, `TEST/19082026223433/`, `arenaRepo001-19082026222314/` | kept as feature demos; candidate for `archive/` |
+| MISPLACED | none | — |
+
 ## Rebuild
 
     ./SelfConstructor.sh --dir "/home/user/arenaRepo001" --name "arenaRepo001"

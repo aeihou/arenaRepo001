@@ -8,7 +8,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-19T22:52:14Z (`--sync-readmes`: every workspace `README.md` re-synced)
+- **Last updated:** 2026-08-19T23:01:19Z (`--verify` added; duped/outdated issues resolved)
 
 ## ExecuteBeforeThinking.DescribeMe(auto)
 
@@ -70,7 +70,9 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
   `autoNameIfNeeded()` (`if (Not)nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")`),
   `syncReadmes()` (`Actualizar(para todo [nameOfFolder.md] OF README.md)`),
   `provenanceFooter()` (`For EveryNewFileConstructor()` — keep the command that
-  created each file, embedded as a footer + audited in `.selfconstructor.log`).
+  created each file, embedded as a footer + audited in `.selfconstructor.log`),
+  `verify()` (`Repo.Verify(consistency().Includes("duped OR outdated OR redundant
+  OR misplaced"))` — POSIX, read-only consistency scan).
 
 ## Quick reference
 
@@ -83,4 +85,5 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 ./SelfConstructor.sh --NameOfFolder:MyTest   # mkdir(MyTest) + self-construct
 ./SelfConstructor.sh --sync-readmes          # re-sync every workspace README.md
 ./SelfConstructor.sh --NameOfFolder:X --no-provenance   # build without provenance
+./SelfConstructor.sh --verify                # duped/outdated/redundant/misplaced scan
 ```

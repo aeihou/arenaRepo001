@@ -8,12 +8,17 @@ Self-described workspace, initialized by `SelfConstructor.sh`.
 ## Contents
 
 - 19082026223433.md
-- SelfConstructor.sh
 
 ## Last updated
 
-- 2026-08-19T22:52:14Z
+- 2026-08-19T23:01:19Z
 
 ## Usage
 
     ./SelfConstructor.sh --help
+
+## Created by
+
+- Script: SelfConstructor.sh
+- Command: ./SelfConstructor.sh --sync-readmes
+- Timestamp: 2026-08-19T23:01:19Z

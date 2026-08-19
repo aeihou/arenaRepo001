@@ -32,6 +32,8 @@
 #                           keeps the command/script that created it, both as a
 #                           footer in the file and as an audit-log line
 #                           (.selfconstructor.log, gitignored)
+#   9. verify            -> Repo.Verify(consistency().Includes(...)): scans for
+#                           DUPED / OUTDATED / REDUNDANT / MISPLACED files
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
@@ -43,6 +45,8 @@
 #       --name-sep SEP        auto-name separator (default "-"; ":" matches the
 #                             literal "nameOfFolder: ddmmaaaaHHMMSS" template)
 #       --sync-readmes        update every README.md from its <name>.md (batch)
+#       --verify              consistency report: duped / outdated / redundant /
+#                             misplaced (POSIX, read-only)
 #       --provenance          annotate every created file with the command that
 #                             made it (default ON; set --no-provenance to disable)
 #   -f, --filename FILE       self-description file   (env: SELF_FILENAME)
@@ -59,6 +63,7 @@
 #   ./SelfConstructor.sh --dir SRC --auto-name --name-sep ':'
 #   ./SelfConstructor.sh --NameOfFolder:MyTest
 #   ./SelfConstructor.sh --sync-readmes
+#   ./SelfConstructor.sh --verify
 # ==============================================================================
 
 set -eu
@@ -74,6 +79,7 @@ SELF_PROVENANCE="${SELF_PROVENANCE:-1}"
 SELF_AUTO_NAME="${SELF_AUTO_NAME:-0}"
 SELF_MKNAME="${SELF_MKNAME:-0}"
 SELF_SYNC="${SELF_SYNC:-0}"
+SELF_VERIFY="${SELF_VERIFY:-0}"
 SELF_NAME_SEP="${SELF_NAME_SEP:--}"
 SELF_FORCE="${SELF_FORCE:-0}"
 SELF_QUIET="${SELF_QUIET:-0}"
@@ -177,21 +183,12 @@ initWorkspace() {
 }
 
 # initSession(name)
-#   Creates the session entry point: the README for the folder.
+#   Creates the session entry point: the README for the folder. Delegates to
+#   writeReadme() so every construction path produces the SAME README template
+#   (title, folder, self-description link, contents, last-updated, provenance).
 initSession() {
     name="$1"
-    newFile "$SELF_DIR/$SELF_README" <<EOF
-# $name
-
-Self-described repository, initialized by \`SelfConstructor.sh\`.
-
-- Folder: $SELF_DIR
-- Self description: [$name.md]($name.md)
-
-## Usage
-
-    ./SelfConstructor.sh --help
-EOF
+    writeReadme "$SELF_DIR" "$name"
 }
 
 # reloadSession()
@@ -220,7 +217,6 @@ selfConstructor() {
     stamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     initWorkspace
-    initSession "$name"
 
     # newFile("[nameOfFolder.md]") — the self-description, linked markdown-style
     newFile "$SELF_DIR/$filename" <<EOF
@@ -243,6 +239,10 @@ Self-constructed description of the **$name** workspace.
 
     ./SelfConstructor.sh --dir "$SELF_DIR" --name "$name"
 EOF
+
+    # initSession(README) — written after the self-description so the README's
+    # Contents section lists it.
+    initSession "$name"
 }
 
 # writeReadme(dir, name)
@@ -295,6 +295,117 @@ syncReadmes() {
     done
 }
 
+# verify([root])
+#   Repo.Verify(consistency().Includes("duped OR outdated OR redundant OR misplaced"))
+#   Read-only, POSIX-only consistency report:
+#     DUPED      files with identical content (cksum size+crc)
+#     OUTDATED   stale SelfConstructor.sh copies; READMEs on the old template
+#     REDUNDANT  self-constructed-only workspaces (no custom content)
+#     MISPLACED  .md files that break the "<folder>.md" convention
+verify() {
+    root="${1:-$SELF_DIR}"
+    [ -n "$root" ] || root="$PWD"
+    [ -d "$root" ] || die "verify: not a directory: $root"
+
+    out="$root/.verify.$$"
+    mkdir -p "$out"
+    trap 'rm -rf "$out"' 0 1 2 3 15
+    dup="$out/dup"; outd="$out/outd"; red="$out/red"; mis="$out/mis"
+    : > "$dup"; : > "$outd"; : > "$red"; : > "$mis"
+
+    # ---- DUPED: exact content duplicates (identical size + crc) ---------------
+    # Runtime artifacts (audit log + first-run marker) are intentionally similar
+    # across workspaces and are gitignored, so they are excluded from this scan.
+    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o -type f -print \
+    | sort \
+    | grep -vE '/(\.selfconstructor\.rc|\.selfconstructor\.log)$' \
+    | while IFS= read -r f; do cksum "$f"; done \
+    | sort -k1,1 -k2,2 \
+    | awk '{
+        name = $0; sub(/^[^ ]+ [^ ]+ /, "", name)
+        key = $1 " " $2
+        if (key == prev) { if (!grp) { print prevname; grp = 1 } print name }
+        else { prev = key; prevname = name; grp = 0 }
+      }' > "$dup"
+
+    # ---- OUTDATED -------------------------------------------------------------
+    canon="$root/SelfConstructor.sh"
+    if [ -f "$canon" ]; then
+        find "$root" -path '*/.git' -prune -o -path "$out" -prune -o \
+            -type f -name 'SelfConstructor.sh' -print \
+        | while IFS= read -r f; do
+            [ "$f" = "$canon" ] && continue
+            cmp -s "$f" "$canon" || echo "$f" >> "$outd"
+        done
+    fi
+    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o \
+        -type f -name 'README.md' -print \
+    | while IFS= read -r f; do
+        grep -q '## Contents' "$f" || echo "$f (old template)" >> "$outd"
+    done
+
+    # ---- REDUNDANT: generated-only workspaces ---------------------------------
+    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o -type d -print \
+    | sort \
+    | while IFS= read -r d; do
+        [ "$d" = "$root" ] && continue
+        base=$(basename "$d")
+        [ -f "$d/$base.md" ] || continue
+        extra=0
+        for e in "$d"/* "$d"/.[!.]*; do
+            [ -e "$e" ] || continue
+            b=$(basename "$e")
+            case "$b" in
+                "$base.md"|README.md|.selfconstructor.rc|.selfconstructor.log) ;;
+                *) extra=1 ;;
+            esac
+        done
+        [ "$extra" -eq 0 ] && echo "$d" >> "$red"
+    done
+
+    # ---- MISPLACED: "<folder>.md" convention ----------------------------------
+    rootname=$(basename "$root")
+    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o \
+        -type f -name '*.md' -print \
+    | while IFS= read -r f; do
+        d=$(dirname "$f"); b=$(basename "$f")
+        folder=$(basename "$d")
+        case "$b" in
+            README.md|agents.md) continue ;;
+            [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].md) continue ;;
+        esac
+        if [ "$folder" = "." ] || [ -z "$folder" ]; then folder="$rootname"; fi
+        [ "$b" = "$folder.md" ] || echo "$f (expected $folder/$folder.md)" >> "$mis"
+    done
+
+    # ---- Report ----------------------------------------------------------------
+    report() {
+        title="$1"; file="$2"
+        say "== $title =="
+        if [ -s "$file" ]; then
+            sed 's/^/  - /' "$file"
+        else
+            say "  (none)"
+        fi
+        say ""
+    }
+    say "Repo.Verify — consistency scan of $root"
+    say ""
+    report "DUPED"      "$dup"
+    report "OUTDATED"   "$outd"
+    report "REDUNDANT"  "$red"
+    report "MISPLACED"  "$mis"
+
+    n=$(( $(wc -l < "$dup") + $(wc -l < "$outd") + $(wc -l < "$red") + $(wc -l < "$mis") ))
+    if [ "$n" -eq 0 ]; then
+        say "consistency: OK — no duped / outdated / redundant / misplaced items."
+    else
+        say "consistency: $n finding(s) across categories (see above)."
+    fi
+    rm -rf "$out"
+    trap - 0 1 2 3 15
+}
+
 # ---- Argument parsing ---------------------------------------------------------
 parse_args() {
     while [ "$#" -gt 0 ]; do
@@ -309,6 +420,7 @@ parse_args() {
             --NameOfFolder:*)    SELF_NAME="${1#*:}"; SELF_MKNAME=1; shift ;;
             --auto-name)     SELF_AUTO_NAME=1; shift ;;
             --sync-readmes)  SELF_SYNC=1; shift ;;
+            --verify)        SELF_VERIFY=1; shift ;;
             --provenance)    SELF_PROVENANCE=1; shift ;;
             --no-provenance) SELF_PROVENANCE=0; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
@@ -357,6 +469,12 @@ main() {
     [ -n "$SELF_DIR" ] || SELF_DIR="$PWD"
     mkdir -p "$SELF_DIR"
     SELF_DIR=$(cd "$SELF_DIR" && pwd)
+
+    # Repo.Verify(consistency().Includes(...))
+    if [ "$SELF_VERIFY" -eq 1 ]; then
+        verify "$SELF_DIR"
+        exit 0
+    fi
 
     # Actualizar(para todo [nameOfFolder.md] OF README.md)
     if [ "$SELF_SYNC" -eq 1 ]; then
