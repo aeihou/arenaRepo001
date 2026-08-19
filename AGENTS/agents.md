@@ -51,6 +51,7 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 | `MyTest/` | Workspace created via `--NameOfFolder:MyTest` |
 | `arenaRepo001-<ddmmaaaaHHMMSS>/` | Auto-named workspace (created when no `--name` is given) |
 | `.selfconstructor.rc` | First-run marker (gitignored) |
+| `.selfconstructor.log` | Audit log: file -> command that created it (gitignored) |
 
 ## Snapshots
 
@@ -66,7 +67,10 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 - **Git:** work only on the session branch; push to `origin`.
 - **Pseudocode primitives:** `initWorkspace()`, `initSession()`,
   `selfConstructor()`, `nameOfFolder().newFile()`, `newSession.Reload()`,
-  `autoNameIfNeeded()` (`if (Not)nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")`).
+  `autoNameIfNeeded()` (`if (Not)nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")`),
+  `syncReadmes()` (`Actualizar(para todo [nameOfFolder.md] OF README.md)`),
+  `provenanceFooter()` (`For EveryNewFileConstructor()` — keep the command that
+  created each file, embedded as a footer + audited in `.selfconstructor.log`).
 
 ## Quick reference
 
@@ -78,4 +82,5 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 ./SelfConstructor.sh --auto-name --name-sep ':'   # literal "name: timestamp"
 ./SelfConstructor.sh --NameOfFolder:MyTest   # mkdir(MyTest) + self-construct
 ./SelfConstructor.sh --sync-readmes          # re-sync every workspace README.md
+./SelfConstructor.sh --NameOfFolder:X --no-provenance   # build without provenance
 ```

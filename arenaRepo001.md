@@ -27,6 +27,8 @@ Self-constructed description of the **arenaRepo001** workspace.
 ## Update
 
 - **Updated by:** `SelfDescriberRepo().Update({$thisRepo})`
+- **Provenance:** `For EveryNewFileConstructor()` — every file this constructor
+  writes keeps the command/script that created it (footer + `.selfconstructor.log`).
 - **Last updated:** 2026-08-19T22:52:14Z — `Actualizar(para todo [nameOfFolder.md] OF README.md)`
   (all workspace `README.md` files re-synced via `./SelfConstructor.sh --sync-readmes`)
 

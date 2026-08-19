@@ -7,7 +7,7 @@ Self-constructed description of the **MyTest** workspace.
 - Folder: /home/user/arenaRepo001/MyTest
 - File: MyTest.md
 - Generator: SelfConstructor.sh
-- Created: 2026-08-19T22:41:15Z
+- Created: 2026-08-19T22:55:11Z
 
 ## Link
 
@@ -16,3 +16,9 @@ Self-constructed description of the **MyTest** workspace.
 ## Rebuild
 
     ./SelfConstructor.sh --dir "/home/user/arenaRepo001/MyTest" --name "MyTest"
+
+## Created by
+
+- Script: SelfConstructor.sh
+- Command: ./SelfConstructor.sh --dir MyTest --name MyTest --force
+- Timestamp: 2026-08-19T22:55:11Z

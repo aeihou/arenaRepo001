@@ -28,6 +28,10 @@
 #   7. syncReadmes()     -> Actualizar(para todo [nameOfFolder.md] OF README.md):
 #                           for every folder carrying a <nameOfFolder>.md, (re)generate
 #                           its README.md from the current workspace state
+#   8. provenance        -> For EveryNewFileConstructor(): every file it creates
+#                           keeps the command/script that created it, both as a
+#                           footer in the file and as an audit-log line
+#                           (.selfconstructor.log, gitignored)
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
@@ -39,6 +43,8 @@
 #       --name-sep SEP        auto-name separator (default "-"; ":" matches the
 #                             literal "nameOfFolder: ddmmaaaaHHMMSS" template)
 #       --sync-readmes        update every README.md from its <name>.md (batch)
+#       --provenance          annotate every created file with the command that
+#                             made it (default ON; set --no-provenance to disable)
 #   -f, --filename FILE       self-description file   (env: SELF_FILENAME)
 #       --readme FILE         readme file name        (default: README.md)
 #       --force               rebuild even if already constructed
@@ -63,6 +69,8 @@ SELF_NAME="${SELF_NAME:-}"
 SELF_FILENAME="${SELF_FILENAME:-}"
 SELF_README="${SELF_README:-README.md}"
 SELF_MARKER="${SELF_MARKER:-.selfconstructor.rc}"
+SELF_LOG="${SELF_LOG:-.selfconstructor.log}"
+SELF_PROVENANCE="${SELF_PROVENANCE:-1}"
 SELF_AUTO_NAME="${SELF_AUTO_NAME:-0}"
 SELF_MKNAME="${SELF_MKNAME:-0}"
 SELF_SYNC="${SELF_SYNC:-0}"
@@ -99,6 +107,41 @@ nameOfFolder() {
     fi
 }
 
+# invocationCommand()
+#   The command (or script) that created the current construction run. Reconstructs
+#   "$0 $@" (with args shell-quoted), or falls back to the exported state when the
+#   session was reloaded via newSession.Reload().
+invocationCommand() {
+    if [ -n "${SELF_ARGV+x}" ]; then
+        printf '%s' "$SELF_ARGV"
+    else
+        printf '%s' "$SELF_SCRIPT"
+    fi
+}
+
+# logCreatedFile(dir, relpath)
+#   For EveryNewFileConstructor(): append an audit-log line recording the command
+#   that created <dir>/<relpath>. Kept POSIX: a single printf append, no external
+#   tools. The log lives at <dir>/.selfconstructor.log (gitignored).
+logCreatedFile() {
+    [ "$SELF_PROVENANCE" -eq 1 ] || return 0
+    d="$1"; rel="$2"
+    printf '%s %s via: %s\n' \
+        "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+        "$rel" \
+        "$(invocationCommand)" >> "$d/$SELF_LOG"
+}
+
+# provenanceFooter()
+#   Renders the "Created by" block embedded in every file this script writes.
+provenanceFooter() {
+    [ "$SELF_PROVENANCE" -eq 1 ] || return 0
+    printf '\n## Created by\n\n'
+    printf -- '- Script: %s\n' "$(basename "$SELF_SCRIPT")"
+    printf -- '- Command: %s\n' "$(invocationCommand)"
+    printf -- '- Timestamp: %s\n' "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+
 # autoNameIfNeeded()
 #   if (Not) nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")
 #   When --auto-name is set and no name was supplied, generate a timestamped
@@ -114,12 +157,15 @@ autoNameIfNeeded() {
 }
 
 # newFile(path)
-#   Creates a file (and any missing parent directories), writing stdin to it.
+#   Creates a file (and any missing parent directories), writing stdin to it,
+#   plus the provenance footer and an audit-log entry (For EveryNewFileConstructor).
 newFile() {
     path="$1"
     dir=$(dirname "$path")
     mkdir -p "$dir"
     cat > "$path"
+    provenanceFooter >> "$path"
+    logCreatedFile "$dir" "$(basename "$path")"
     say "created $path"
 }
 
@@ -225,7 +271,9 @@ writeReadme() {
         done
         printf '\n## Last updated\n\n- %s\n\n' "$stamp"
         printf '## Usage\n\n    ./SelfConstructor.sh --help\n'
+        provenanceFooter
     } > "$tmp"
+    logCreatedFile "$d" "$SELF_README"
     mv "$tmp" "$d/$SELF_README"
     say "updated $d/$SELF_README"
 }
@@ -261,6 +309,8 @@ parse_args() {
             --NameOfFolder:*)    SELF_NAME="${1#*:}"; SELF_MKNAME=1; shift ;;
             --auto-name)     SELF_AUTO_NAME=1; shift ;;
             --sync-readmes)  SELF_SYNC=1; shift ;;
+            --provenance)    SELF_PROVENANCE=1; shift ;;
+            --no-provenance) SELF_PROVENANCE=0; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
             --name-sep=*)    SELF_NAME_SEP="${1#*=}"; shift ;;
             -f|--filename)   [ "$#" -ge 2 ] || die "missing value for $1"; SELF_FILENAME="$2"; shift 2 ;;
@@ -287,6 +337,23 @@ parse_args() {
 main() {
     parse_args "$@"
 
+    # Capture the command/script that is creating this run (For EveryNewFileConstructor).
+    # Defaults are inherited from an exported state on newSession.Reload().
+    SELF_SCRIPT="${SELF_SCRIPT:-$0}"
+    if [ "$#" -gt 0 ]; then
+        q=
+        for a in "$@"; do
+            case "$a" in
+                *' '*|*'"'*|*"'"*) a=$(printf '%s' "$a" | sed "s/'/'\\\\''/g"); q="$q '$a'" ;;
+                *) q="$q $a" ;;
+            esac
+        done
+        SELF_ARGV="$SELF_SCRIPT$q"
+    else
+        SELF_ARGV="${SELF_ARGV:-$SELF_SCRIPT}"
+    fi
+    export SELF_SCRIPT SELF_ARGV
+
     [ -n "$SELF_DIR" ] || SELF_DIR="$PWD"
     mkdir -p "$SELF_DIR"
     SELF_DIR=$(cd "$SELF_DIR" && pwd)
@@ -308,7 +375,7 @@ main() {
         say "mkdir: $SELF_DIR (NameOfFolder $SELF_NAME)"
     fi
 
-    export SELF_DIR SELF_NAME SELF_QUIET
+    export SELF_DIR SELF_NAME SELF_QUIET SELF_SCRIPT SELF_ARGV SELF_PROVENANCE SELF_LOG
 
     if [ "$SELF_RELOADED" -eq 0 ]; then
         if [ -f "$SELF_DIR/$SELF_MARKER" ] && [ "$SELF_FORCE" -eq 0 ]; then
