@@ -8,7 +8,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-19T22:28:56Z (selfConstructor `19082026221404`, added `TEST/`)
+- **Last updated:** 2026-08-19T22:41:12Z (added `MyTest/`, timestamp format `ddmmaaaaHHMMSS`)
 
 ## ExecuteBeforeThinking.DescribeMe(auto)
 
@@ -46,6 +46,8 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 | `AGENTS/<ddmmaaaaHHMMSS>.md` | Timestamped self-construction snapshots |
 | `SRC/Tools/` | Self-constructed tools workspace (`Tools.md`, `README.md`) |
 | `TEST/` | Self-constructed test workspace (`TEST.md`, `README.md`) |
+| `TEST/<ddmmaaaaHHMMSS>/` | Executed copied constructor (correct `ddmmaaaaHHMMSS` name) |
+| `MyTest/` | Workspace created via `--NameOfFolder:MyTest` |
 | `arenaRepo001-<ddmmaaaaHHMMSS>/` | Auto-named workspace (created when no `--name` is given) |
 | `.selfconstructor.rc` | First-run marker (gitignored) |
 
@@ -73,4 +75,5 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 ./SelfConstructor.sh --force       # rebuild
 ./SelfConstructor.sh --auto-name   # no name -> mkdir "<name>-<ddmmaaaaHHMMSS>"
 ./SelfConstructor.sh --auto-name --name-sep ':'   # literal "name: timestamp"
+./SelfConstructor.sh --NameOfFolder:MyTest   # mkdir(MyTest) + self-construct
 ```

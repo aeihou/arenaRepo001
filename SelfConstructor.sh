@@ -10,6 +10,7 @@
 #     initSession(nameOfFolder.newFile.README);
 #     if (Not)nameOfFolder then
 #         mkdir("nameOfFolder: ddmmaaaaHHMMSS").selfConstructor("$Name_Folder");
+#     SelfConstructor.sh --NameOfFolder:MyTest
 #
 # into a parametrizable POSIX sh script. On first run it:
 #   1. initWorkspace()   -> ensures the target folder exists
@@ -21,11 +22,15 @@
 #   5. autoName()        -> if no name is given, mkdir a timestamped folder
 #                           "<nameOfFolder><sep><ddmmaaaaHHMMSS>" and
 #                           self-construct it under that name
+#   6. mkNameOfFolder()  -> --NameOfFolder NAME: mkdir(NAME) and self-construct
+#                           the workspace under that folder name
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
 #   -d, --dir DIR             target directory        (env: SELF_DIR)
 #   -n, --name NAME           override folder name    (env: SELF_NAME)
+#       --NameOfFolder NAME   mkdir(NAME) + self-construct it (accepts the
+#                             --NameOfFolder:NAME and --NameOfFolder=NAME forms)
 #       --auto-name           if no --name given, mkdir a timestamped folder
 #       --name-sep SEP        auto-name separator (default "-"; ":" matches the
 #                             literal "nameOfFolder: ddmmaaaaHHMMSS" template)
@@ -41,6 +46,7 @@
 #   ./SelfConstructor.sh --dir /path/to/repo
 #   ./SelfConstructor.sh --dir . --name myProject --filename "[myProject].md"
 #   ./SelfConstructor.sh --dir SRC --auto-name --name-sep ':'
+#   ./SelfConstructor.sh --NameOfFolder:MyTest
 # ==============================================================================
 
 set -eu
@@ -52,6 +58,7 @@ SELF_FILENAME="${SELF_FILENAME:-}"
 SELF_README="${SELF_README:-README.md}"
 SELF_MARKER="${SELF_MARKER:-.selfconstructor.rc}"
 SELF_AUTO_NAME="${SELF_AUTO_NAME:-0}"
+SELF_MKNAME="${SELF_MKNAME:-0}"
 SELF_NAME_SEP="${SELF_NAME_SEP:--}"
 SELF_FORCE="${SELF_FORCE:-0}"
 SELF_QUIET="${SELF_QUIET:-0}"
@@ -194,6 +201,9 @@ parse_args() {
             --dir=*)         SELF_DIR="${1#*=}"; shift ;;
             -n|--name)       [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME="$2"; shift 2 ;;
             --name=*)        SELF_NAME="${1#*=}"; shift ;;
+            --NameOfFolder)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME="$2"; SELF_MKNAME=1; shift 2 ;;
+            --NameOfFolder=*)    SELF_NAME="${1#*=}"; SELF_MKNAME=1; shift ;;
+            --NameOfFolder:*)    SELF_NAME="${1#*:}"; SELF_MKNAME=1; shift ;;
             --auto-name)     SELF_AUTO_NAME=1; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
             --name-sep=*)    SELF_NAME_SEP="${1#*=}"; shift ;;
@@ -227,6 +237,15 @@ main() {
 
     # if (Not) nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")
     autoNameIfNeeded
+
+    # --NameOfFolder NAME -> mkdir(NAME) and self-construct it there
+    if [ "$SELF_MKNAME" -eq 1 ]; then
+        SELF_DIR="$SELF_DIR/$SELF_NAME"
+        mkdir -p "$SELF_DIR"
+        SELF_DIR=$(cd "$SELF_DIR" && pwd)
+        say "mkdir: $SELF_DIR (NameOfFolder $SELF_NAME)"
+    fi
+
     export SELF_DIR SELF_NAME SELF_QUIET
 
     if [ "$SELF_RELOADED" -eq 0 ]; then
