@@ -8,7 +8,27 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-19T23:01:19Z (`--verify` added; duped/outdated issues resolved)
+- **Last updated:** 2026-08-19T23:12:00Z (lifecycle hooks EBT/EAT + `ExportSession` kept)
+
+## Lifecycle hooks — EBT / EAT
+
+Abbreviations kept as directed:
+
+- **EBT** = `ExecuteBeforeThinking`
+- **EAT** = `ExecuteAfterThinking`
+
+Pipeline applied on every task:
+
+1. **EBT.Synch(Repo)** — before any change, bring the workspace in line with the
+   session branch on `origin`:
+   `git fetch origin refs/heads/<branch>:refs/remotes/origin/<branch>`
+   then verify `local HEAD == origin/<branch>` (against `git ls-remote`, never a
+   stale remote-tracking ref) and fast-forward/reset if needed.
+2. **EBT.DescribeMe(auto)** — self-description before acting (see section below).
+3. **EAT.Commit&&Push()** — after the task:
+   `git add -A && git commit -m "<msg>" && git push origin <branch>`.
+4. **ExportSession("userPrompt, log.init()")** — append the session record
+   (the user prompt + an initialized log entry) to `AGENTS/session.log`.
 
 ## ExecuteBeforeThinking.DescribeMe(auto)
 
@@ -33,7 +53,8 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 1. Interpret user pseudocode and materialize it as executable scripts/docs.
 2. Execute generated scripts for the first time inside the workspace.
 3. Keep the repository self-describing: `README.md`, `<name>.md`, and this file.
-4. Commit and push work to the session branch (`arena_AI.commitAndPush`).
+4. Apply the EBT/EAT lifecycle and commit & push work to the session branch
+   (`arena_AI.commitAndPush` / `ExecuteAfterThinking.Commit&&Push()`).
 
 ## Repository map
 
@@ -44,6 +65,7 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 | `README.md` | Session entry point / overview |
 | `AGENTS/agents.md` | This agent registry |
 | `AGENTS/README.md` | AGENTS workspace entry point (links `agents.md`) |
+| `AGENTS/session.log` | Session export: `userPrompt` + `log.init()` (via `ExportSession`) |
 | `AGENTS/<ddmmaaaaHHMMSS>.md` | Timestamped self-construction snapshots |
 | `SRC/Tools/` | Self-constructed tools workspace (`Tools.md`, `README.md`) |
 | `TEST/` | Self-constructed test workspace (`TEST.md`, `README.md`) |
@@ -65,6 +87,9 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 - **Params:** CLI flags override environment variables.
 - **Idempotency:** constructors skip work when a marker exists; use `--force`.
 - **Git:** work only on the session branch; push to `origin`.
+- **Lifecycle:** `EBT` (`ExecuteBeforeThinking`) = Synch(Repo) → DescribeMe(auto);
+  `EAT` (`ExecuteAfterThinking`) = Commit&&Push();
+  `ExportSession("userPrompt, log.init()")` → `AGENTS/session.log`.
 - **Pseudocode primitives:** `initWorkspace()`, `initSession()`,
   `selfConstructor()`, `nameOfFolder().newFile()`, `newSession.Reload()`,
   `autoNameIfNeeded()` (`if (Not)nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")`),

@@ -1,0 +1,23 @@
+# AGENTS/session.log — session export (arena_AI / arenaRepo001)
+
+log.init() at 2026-08-19T23:05:38Z
+
+## userPrompt
+
+Keep **ExecuteAfterThinking.Commit&&Push(); ExecuteBeforeThinking.Synch(Repo);
+ExecuteAfterThinking = EAT and ExecuteBeforeThinking = EBT;
+ExportSession("userPrompt,log.init()");**
+
+## Lifecycle applied this session
+
+- EBT = ExecuteBeforeThinking
+  1. Synch(Repo): git fetch (full refspec) + verify local HEAD == origin
+  2. DescribeMe(auto): self-description before acting
+- EAT = ExecuteAfterThinking
+  1. Commit&&Push(): git add -A && git commit && git push origin <branch>
+- ExportSession("userPrompt, log.init()"): this file
+
+## Notes
+
+- Synch(Repo) must compare against `git ls-remote` (or a freshly updated
+  remote-tracking ref), never a stale `origin/<branch>` ref.
