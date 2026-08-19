@@ -21,3 +21,23 @@ ExportSession("userPrompt,log.init()");**
 
 - Synch(Repo) must compare against `git ls-remote` (or a freshly updated
   remote-tracking ref), never a stale `origin/<branch>` ref.
+
+---
+
+## userPrompt (next)
+
+self.Consistency.new(verify documentation to scripts)
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): fetch (full refspec) + verify local HEAD == origin (87f3aef) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work: added `SelfConstructor.sh --check-docs` (POSIX, read-only)
+  - flags: --help header vs parse_args()
+  - env:   SELF_* used vs documented (internal state excluded)
+  - primitives: agents.md vs function defs (pseudocode aliases mapped)
+  - documented all env overrides in the header
+  - drift test: a copy missing the --check-docs doc is flagged as
+    "implemented but not documented"
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>
+

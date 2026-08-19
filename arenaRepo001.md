@@ -46,6 +46,21 @@ Result of the scan on 2026-08-19T23:01:19Z:
 | REDUNDANT | generated-only workspaces: `MyTest/`, `SRC/Tools/`, `TEST/19082026223433/`, `arenaRepo001-19082026222314/` | kept as feature demos; candidate for `archive/` |
 | MISPLACED | none | — |
 
+## Documentation consistency
+
+`self.Consistency.new("verify documentation to scripts")`
+→ `./SelfConstructor.sh --check-docs` (POSIX, read-only).
+
+Cross-checks the `--help` header and `AGENTS/agents.md` against the script:
+
+- **FLAGS:** `--flags` documented vs implemented in `parse_args()`.
+- **ENV:** `SELF_*` variables used vs documented (internal state excluded).
+- **PRIMITIVES:** primitives documented in `agents.md` vs function definitions
+  (pseudocode aliases mapped: `newSession.Reload()` → `reloadSession()`,
+  `For EveryNewFileConstructor()` → `newFile()`, `consistency()` → `verify()`).
+
+Result: OK — documentation matches the script (verified 2026-08-19T23:16:00Z).
+
 ## Rebuild
 
     ./SelfConstructor.sh --dir "/home/user/arenaRepo001" --name "arenaRepo001"

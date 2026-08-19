@@ -8,7 +8,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-19T23:12:00Z (lifecycle hooks EBT/EAT + `ExportSession` kept)
+- **Last updated:** 2026-08-19T23:16:00Z (`--check-docs` added: documentation <-> script verification)
 
 ## Lifecycle hooks — EBT / EAT
 
@@ -97,7 +97,10 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
   `provenanceFooter()` (`For EveryNewFileConstructor()` — keep the command that
   created each file, embedded as a footer + audited in `.selfconstructor.log`),
   `verify()` (`Repo.Verify(consistency().Includes("duped OR outdated OR redundant
-  OR misplaced"))` — POSIX, read-only consistency scan).
+  OR misplaced"))` — POSIX, read-only consistency scan),
+  `checkDocs()` (`self.Consistency.new("verify documentation to scripts")` —
+  POSIX cross-check of the --help header + AGENTS/agents.md against the flags,
+  env vars and primitives the script actually implements).
 
 ## Quick reference
 
@@ -111,4 +114,5 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 ./SelfConstructor.sh --sync-readmes          # re-sync every workspace README.md
 ./SelfConstructor.sh --NameOfFolder:X --no-provenance   # build without provenance
 ./SelfConstructor.sh --verify                # duped/outdated/redundant/misplaced scan
+./SelfConstructor.sh --check-docs            # documentation <-> script consistency
 ```

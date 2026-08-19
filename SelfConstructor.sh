@@ -34,6 +34,9 @@
 #                           (.selfconstructor.log, gitignored)
 #   9. verify            -> Repo.Verify(consistency().Includes(...)): scans for
 #                           DUPED / OUTDATED / REDUNDANT / MISPLACED files
+#  10. checkDocs         -> self.Consistency.new(verify documentation to scripts):
+#                           cross-checks --help/agents.md docs against the flags,
+#                           env vars and primitives the script actually implements
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
@@ -47,6 +50,8 @@
 #       --sync-readmes        update every README.md from its <name>.md (batch)
 #       --verify              consistency report: duped / outdated / redundant /
 #                             misplaced (POSIX, read-only)
+#       --check-docs          verify documentation <-> script consistency
+#                             (flags, env vars, primitives; POSIX, read-only)
 #       --provenance          annotate every created file with the command that
 #                             made it (default ON; set --no-provenance to disable)
 #   -f, --filename FILE       self-description file   (env: SELF_FILENAME)
@@ -64,6 +69,11 @@
 #   ./SelfConstructor.sh --NameOfFolder:MyTest
 #   ./SelfConstructor.sh --sync-readmes
 #   ./SelfConstructor.sh --verify
+#   ./SelfConstructor.sh --check-docs
+#
+# Environment (overridable; CLI wins):
+#   SELF_DIR SELF_NAME SELF_FILENAME SELF_README SELF_MARKER SELF_LOG
+#   SELF_PROVENANCE SELF_AUTO_NAME SELF_NAME_SEP
 # ==============================================================================
 
 set -eu
@@ -80,6 +90,7 @@ SELF_AUTO_NAME="${SELF_AUTO_NAME:-0}"
 SELF_MKNAME="${SELF_MKNAME:-0}"
 SELF_SYNC="${SELF_SYNC:-0}"
 SELF_VERIFY="${SELF_VERIFY:-0}"
+SELF_CHKDOCS="${SELF_CHKDOCS:-0}"
 SELF_NAME_SEP="${SELF_NAME_SEP:--}"
 SELF_FORCE="${SELF_FORCE:-0}"
 SELF_QUIET="${SELF_QUIET:-0}"
@@ -406,6 +417,84 @@ verify() {
     trap - 0 1 2 3 15
 }
 
+# tokens() — POSIX token extractor: emits every match of a regex found in stdin,
+# one per line (awk match()+RSTART/RLENGTH; no GNU grep -o).
+tokens() {
+    re="$1"
+    awk -v re="$re" '{
+        while (match($0, re)) { print substr($0, RSTART, RLENGTH); $0 = substr($0, RSTART+RLENGTH) }
+    }'
+}
+
+# checkDocs([root])
+#   self.Consistency.new("verify documentation to scripts")
+#   Read-only, POSIX-only cross-check between the documentation and the script:
+#     1. FLAGS:      --flags documented in the --help header vs those actually
+#                    handled by parse_args()
+#     2. ENV:        SELF_* variables used by the script vs documented in the
+#                    header (internal state vars are excluded by contract)
+#     3. PRIMITIVES: primitives documented in AGENTS/agents.md vs function
+#                    definitions in the script (pseudocode aliases mapped)
+checkDocs() {
+    root="${1:-$SELF_DIR}"
+    [ -n "$root" ] || root="$PWD"
+    script="$0"
+    agents="$root/AGENTS/agents.md"
+    tmp="$root/.checkdocs.$$"
+    mkdir -p "$tmp"
+    trap 'rm -rf "$tmp"' 0 1 2 3 15
+    hdr="$tmp/hdr"; prs="$tmp/prs"
+
+    # header (the --help text) and the parse_args() body
+    awk 'NR > 2 { if ($0 ~ /^# =+$/) exit; print }' "$script" > "$hdr"
+    sed -n '/^parse_args()/,/^}/p' "$script" > "$prs"
+
+    tokens '--[A-Za-z][A-Za-z-]*' < "$hdr" | sort -u > "$tmp/flags_doc"
+    tokens '--[A-Za-z][A-Za-z-]*' < "$prs" | sort -u > "$tmp/flags_impl"
+
+    tokens 'SELF_[A-Z_]+' < "$hdr" | sort -u > "$tmp/env_doc"
+    tokens 'SELF_[A-Z_]+' < "$script" \
+        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
+        | sort -u > "$tmp/env_impl"
+
+    say "Self.Consistency — documentation <-> script ($script)"
+    say ""
+    say "== FLAGS: documented but not implemented =="
+    comm -23 "$tmp/flags_doc" "$tmp/flags_impl" | sed 's/^/  - /'
+    say ""
+    say "== FLAGS: implemented but not documented =="
+    comm -13 "$tmp/flags_doc" "$tmp/flags_impl" | sed 's/^/  - /'
+    say ""
+    say "== ENV: documented but not used =="
+    comm -23 "$tmp/env_doc" "$tmp/env_impl" | sed 's/^/  - /'
+    say ""
+    say "== ENV: used but not documented =="
+    comm -13 "$tmp/env_doc" "$tmp/env_impl" | sed 's/^/  - /'
+    say ""
+    say "== PRIMITIVES: documented in agents.md but not defined =="
+    if [ -f "$agents" ]; then
+        awk '/Pseudocode primitives:/{on=1} on{print} on && /Lifecycle:/{exit}' "$agents" \
+        | tokens '[A-Za-z_][A-Za-z0-9_]*\(\)' \
+        | sed 's/()$//' \
+        | sort -u \
+        | while IFS= read -r fn; do
+            # documented pseudocode -> implemented function alias table
+            case "$fn" in
+                Reload)                  fn=reloadSession ;; # newSession.Reload()
+                EveryNewFileConstructor) fn=newFile ;;       # For EveryNewFileConstructor()
+                consistency)             fn=verify ;;        # Repo.Verify(consistency())
+            esac
+            grep -qE "^$fn\(\)" "$script" || echo "  - $fn()"
+        done
+    else
+        say "  (AGENTS/agents.md not found)"
+    fi
+    say ""
+    say "done."
+    rm -rf "$tmp"
+    trap - 0 1 2 3 15
+}
+
 # ---- Argument parsing ---------------------------------------------------------
 parse_args() {
     while [ "$#" -gt 0 ]; do
@@ -421,6 +510,7 @@ parse_args() {
             --auto-name)     SELF_AUTO_NAME=1; shift ;;
             --sync-readmes)  SELF_SYNC=1; shift ;;
             --verify)        SELF_VERIFY=1; shift ;;
+            --check-docs)    SELF_CHKDOCS=1; shift ;;
             --provenance)    SELF_PROVENANCE=1; shift ;;
             --no-provenance) SELF_PROVENANCE=0; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
@@ -469,6 +559,12 @@ main() {
     [ -n "$SELF_DIR" ] || SELF_DIR="$PWD"
     mkdir -p "$SELF_DIR"
     SELF_DIR=$(cd "$SELF_DIR" && pwd)
+
+    # self.Consistency.new(verify documentation to scripts)
+    if [ "$SELF_CHKDOCS" -eq 1 ]; then
+        checkDocs "$SELF_DIR"
+        exit 0
+    fi
 
     # Repo.Verify(consistency().Includes(...))
     if [ "$SELF_VERIFY" -eq 1 ]; then
