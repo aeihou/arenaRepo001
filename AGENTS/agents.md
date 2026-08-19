@@ -8,7 +8,25 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-19T22:14:04Z (selfConstructor `19082026221404`)
+- **Last updated:** 2026-08-19T22:28:56Z (selfConstructor `19082026221404`, added `TEST/`)
+
+## ExecuteBeforeThinking.DescribeMe(auto)
+
+Directive added by `arena_AI` (`-Write to /AGENTS/agents.md addText(...)`):
+
+Before executing any task in this repository, `arena_AI` must automatically
+describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
+
+- **Who:** `arena_AI` (Arena.ai Agent Mode), on branch
+  `arena/01a01c09-arenarepo001`.
+- **What it will do:** translate the incoming pseudocode into parametrizable,
+  executable artifacts, then run them for the first time in the workspace.
+- **How:** `initWorkspace()` → `initSession(README)` →
+  `selfConstructor(<Name_Folder>.md)` → `SelfDescriberRepo().Update($thisRepo)`
+  → commit & push.
+- **Auto-description artifact:** every self-constructed workspace carries a
+  `<Name_Folder>.md` self-description plus a `README.md` session entry point.
+- **Refresh:** this section is regenerated on each `agents.md().Update($)`.
 
 ## Responsibilities
 
@@ -27,6 +45,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 | `AGENTS/agents.md` | This agent registry |
 | `AGENTS/<ddmmaaaaHHMMSS>.md` | Timestamped self-construction snapshots |
 | `SRC/Tools/` | Self-constructed tools workspace (`Tools.md`, `README.md`) |
+| `TEST/` | Self-constructed test workspace (`TEST.md`, `README.md`) |
 | `arenaRepo001-<ddmmaaaaHHMMSS>/` | Auto-named workspace (created when no `--name` is given) |
 | `.selfconstructor.rc` | First-run marker (gitignored) |
 
