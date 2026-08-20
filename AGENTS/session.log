@@ -149,3 +149,28 @@ NewFile(/AGENTS/SessionHand-off.md).Write("The essential data and procedures for
     -> searchHardcoded (fixes 2 documented-but-undefined findings)
   - search TOKENS extended with 'SessionHand-off.md'
 - EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+---
+
+## userPrompt (next)
+
+newFolder(/AGENTS/.user/); Keep there my ++**[MyPrompts.md](http://MyPrompts.md)**++().Keep all mypromts sent in this session; and generate a function BeforeThinking.MyPrompts.md().Add(new Prompt);
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): verified local HEAD == origin (a1e9891) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work:
+  - newFolder(AGENTS/.user/) + kept AGENTS/.user/MyPrompts.md: prompt journal
+    with ALL 20 prompts sent this session (1-19 collected from history, #20
+    appended via the new primitive itself)
+  - new addPrompt() primitive + --add-prompt/--add-prompt= flag
+    (BeforeThinking.MyPrompts.md.Add(new Prompt)): creates the journal with a
+    header on first use, then appends numbered, timestamped entries; POSIX-only
+  - wired in: verify() exempts MyPrompts.md from <folder>.md rule; classifyFile
+    types it 'prompt journal'; --update inventory includes it (21 files);
+    search TOKENS + --search-hardcoded cover 'MyPrompts.md'
+  - docs: agents.md (lifecycle EBT step 6, repo map, primitives, quick ref),
+    PortableSessionAI.md + SessionHand-off.md (pseudocode/flags/env/data export),
+    arenaRepo001.md 'Prompt journal' section
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>

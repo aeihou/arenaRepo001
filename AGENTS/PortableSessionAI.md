@@ -4,7 +4,7 @@ Portable session export for `arenaRepo001` — the skill procedures and data
 another `agent_AI` needs to continue this conversation / development / context.
 
 - **Exported by:** `arena_AI` (Arena.ai Agent Mode)
-- **Generated:** 2026-08-20T01:01:47Z (UTC)
+- **Generated:** 2026-08-20T01:16:45Z (UTC)
 - **Session branch:** `arena/01a01c09-arenarepo001`
 - **Remote:** `https://github.com/aeihou/arenaRepo001.git`
 
@@ -21,7 +21,7 @@ another `agent_AI` needs to continue this conversation / development / context.
 | Repository | `aeihou/arenaRepo001` |
 | Working branch (fixed) | `arena/01a01c09-arenarepo001` |
 | Base branch | `main` @ `2f643c1` |
-| Last pushed commit (at export) | f0c7bc1 |
+| Last pushed commit (at export) | a1e9891 |
 | Owner style | pseudocode → parametrizable POSIX `sh` artifacts |
 
 > **Rule:** always work on `arena/01a01c09-arenarepo001`. Never switch, create,
@@ -100,6 +100,7 @@ translation into the implemented `SelfConstructor.sh`:
 | `self.Consistency.new(verify documentation to scripts)` | `--check-docs` scan |
 | `Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables()` | `--search-hardcoded` scan; parameterize magic values into `SELF_*` defaults |
 | `Repo.Update(ForEveryFile)` | `--update`: re-sync every README + regenerate the complete file inventory |
+| `BeforeThinking.MyPrompts.md().Add(new Prompt)` | `--add-prompt TEXT`: append to `AGENTS/.user/MyPrompts.md` |
 | `SelfDescriberRepo().Update({$thisRepo})` | update `arenaRepo001.md` after each change |
 | `AGENTS/agents.md().Update($)` | update the agent registry |
 | `arena_AI.commitAndPush()` / `Arena_AI.pushAndCommit()` | commit + push to the session branch |
@@ -115,21 +116,24 @@ Self-executing, POSIX `#!/bin/sh` (dash-safe, `set -eu`), parametrizable.
 `nameOfFolder` · `autoNameIfNeeded` · `newFile` · `initWorkspace` ·
 `initSession` (delegates to `writeReadme`) · `writeReadme` · `reloadSession` ·
 `selfConstructor` · `syncReadmes` · `verify` · `checkDocs` · `refreshHandoff` ·
-`searchHardcoded` · `updateEveryFile` · `classifyFile` · `injectInventory` ·
-`invocationCommand` · `logCreatedFile` · `provenanceFooter` · `tokens`.
+`searchHardcoded` · `updateEveryFile` · `addPrompt` · `classifyFile` ·
+`injectInventory` · `invocationCommand` · `logCreatedFile` ·
+`provenanceFooter` · `tokens`.
 
 ### 4.2 CLI flags (CLI wins over env)
 
 `--dir` · `--name` · `--NameOfFolder` (`:`, `=`, space forms) · `--auto-name` ·
 `--name-sep` · `--sync-readmes` · `--verify` · `--check-docs` · `--handoff` ·
-`--search-hardcoded` · `--update` · `--provenance` / `--no-provenance` ·
-`--filename` · `--readme` · `--force` · `--no-reload` · `--quiet` · `--help`.
+`--search-hardcoded` · `--update` · `--add-prompt` · `--provenance` /
+`--no-provenance` · `--filename` · `--readme` · `--force` · `--no-reload` ·
+`--quiet` · `--help`.
 
 ### 4.3 Environment (overridable)
 
 `SELF_DIR` · `SELF_NAME` · `SELF_FILENAME` · `SELF_README` · `SELF_MARKER` ·
 `SELF_LOG` · `SELF_PROVENANCE` · `SELF_AUTO_NAME` · `SELF_NAME_SEP` ·
 `SELF_AGENTS_DIR` · `SELF_AGENTS_FILE` · `SELF_HANDOFF_FILE` ·
+`SELF_SESSION_HANDOFF` · `SELF_USER_DIR` · `SELF_PROMPTS_FILE` ·
 `SELF_SCRIPT_NAME` · `SELF_GITDIR` · `SELF_TS_FMT` · `SELF_ISO_FMT`.
 
 ### 4.4 Guarantees
@@ -245,11 +249,12 @@ repo=arenaRepo001
 remote=https://github.com/aeihou/arenaRepo001.git
 branch=arena/01a01c09-arenarepo001
 base=main
-last_commit=f0c7bc1
+last_commit=a1e9891
 self_description=arenaRepo001.md
 agent_registry=AGENTS/agents.md
 session_log=AGENTS/session.log
 handoff=AGENTS/PortableSessionAI.md
+prompts=AGENTS/.user/MyPrompts.md
 engine=SelfConstructor.sh
 verify=./SelfConstructor.sh --verify
 check_docs=./SelfConstructor.sh --check-docs
@@ -257,6 +262,7 @@ search_hardcoded=./SelfConstructor.sh --search-hardcoded
 sync_readmes=./SelfConstructor.sh --sync-readmes
 handoff=./SelfConstructor.sh --handoff
 update=./SelfConstructor.sh --update
+add_prompt=./SelfConstructor.sh --add-prompt
 timestamp_format=ddmmaaaaHHMMSS
 ```
 

@@ -48,6 +48,9 @@
 #  13. updateEveryFile   -> Repo.Update(ForEveryFile): re-sync every workspace
 #                           README and regenerate a complete file inventory into
 #                           the root self-description, so every file is described.
+#  14. addPrompt         -> BeforeThinking.MyPrompts.md.Add(new Prompt): append
+#                           each new prompt to the session prompt journal
+#                           (AGENTS/.user/MyPrompts.md) at EBT
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
@@ -68,6 +71,8 @@
 #       --search-hardcoded    report literal hardcoded variables in *.sh files
 #       --update              Repo.Update(ForEveryFile): re-sync every workspace
 #                             README + regenerate the file inventory
+#       --add-prompt TEXT     BeforeThinking.MyPrompts.md.Add(new Prompt): append
+#                             a prompt to AGENTS/.user/MyPrompts.md (prompt journal)
 #       --provenance          annotate every created file with the command that
 #                             made it (default ON; set --no-provenance to disable)
 #   -f, --filename FILE       self-description file   (env: SELF_FILENAME)
@@ -89,11 +94,13 @@
 #   ./SelfConstructor.sh --handoff
 #   ./SelfConstructor.sh --search-hardcoded
 #   ./SelfConstructor.sh --update
+#   ./SelfConstructor.sh --add-prompt "new prompt"
 #
 # Environment (overridable; CLI wins):
 #   SELF_DIR SELF_NAME SELF_FILENAME SELF_README SELF_MARKER SELF_LOG
 #   SELF_PROVENANCE SELF_AUTO_NAME SELF_NAME_SEP
 #   SELF_AGENTS_DIR SELF_AGENTS_FILE SELF_HANDOFF_FILE SELF_SESSION_HANDOFF
+#   SELF_USER_DIR SELF_PROMPTS_FILE
 #   SELF_SCRIPT_NAME SELF_GITDIR SELF_TS_FMT SELF_ISO_FMT
 # ==============================================================================
 
@@ -110,6 +117,10 @@ SELF_AGENTS_DIR="${SELF_AGENTS_DIR:-AGENTS}"
 SELF_AGENTS_FILE="${SELF_AGENTS_FILE:-agents.md}"
 SELF_HANDOFF_FILE="${SELF_HANDOFF_FILE:-PortableSessionAI.md}"
 SELF_SESSION_HANDOFF="${SELF_SESSION_HANDOFF:-SessionHand-off.md}"
+SELF_USER_DIR="${SELF_USER_DIR:-.user}"
+SELF_PROMPTS_FILE="${SELF_PROMPTS_FILE:-MyPrompts.md}"
+SELF_ADDPROMPT="${SELF_ADDPROMPT:-0}"
+SELF_PROMPT_TEXT="${SELF_PROMPT_TEXT:-}"
 SELF_SCRIPT_NAME="${SELF_SCRIPT_NAME:-SelfConstructor.sh}"
 SELF_GITDIR="${SELF_GITDIR:-.git}"
 SELF_TS_FMT="${SELF_TS_FMT:-%d%m%Y%H%M%S}"
@@ -418,7 +429,8 @@ verify() {
         d=$(dirname "$f"); b=$(basename "$f")
         folder=$(basename "$d")
         if [ "$b" = "$SELF_README" ] || [ "$b" = "$SELF_AGENTS_FILE" ] \
-           || [ "$b" = "$SELF_HANDOFF_FILE" ] || [ "$b" = "$SELF_SESSION_HANDOFF" ]; then
+           || [ "$b" = "$SELF_HANDOFF_FILE" ] || [ "$b" = "$SELF_SESSION_HANDOFF" ] \
+           || [ "$b" = "$SELF_PROMPTS_FILE" ]; then
             continue
         fi
         case "$b" in
@@ -493,7 +505,7 @@ checkDocs() {
 
     tokens 'SELF_[A-Z_]+' < "$hdr" | sort -u > "$tmp/env_doc"
     tokens 'SELF_[A-Z_]+' < "$script" \
-        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_HANDOFF|SELF_SEARCH|SELF_UPDATE|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
+        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_HANDOFF|SELF_SEARCH|SELF_UPDATE|SELF_ADDPROMPT|SELF_PROMPT_TEXT|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
         | sort -u > "$tmp/env_impl"
 
     say "Self.Consistency — documentation <-> script ($script)"
@@ -592,6 +604,7 @@ SelfConstructor.sh
 AGENTS/agents.md
 AGENTS/PortableSessionAI.md
 SessionHand-off.md
+MyPrompts.md
 %d%m%Y%H%M%S
 %Y-%m-%dT%H:%M:%SZ'
 # >>>search-tokens
@@ -633,6 +646,7 @@ classifyFile() {
         "$SELF_AGENTS_FILE")           printf 'agent registry' ;;
         "$SELF_HANDOFF_FILE")          printf 'portable session export' ;;
         "$SELF_SESSION_HANDOFF")       printf 'session hand-off' ;;
+        "$SELF_PROMPTS_FILE")          printf 'prompt journal' ;;
         session.log)                   printf 'session log' ;;
         [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].md)
                                        printf 'timestamped snapshot' ;;
@@ -742,6 +756,38 @@ updateEveryFile() {
     trap - 0 1 2 3 15
 }
 
+# addPrompt([root], prompt)
+#   BeforeThinking.MyPrompts.md.Add(new Prompt)
+#   Appends a new prompt to the session prompt journal
+#   (<root>/AGENTS/.user/MyPrompts.md). Creates the journal (with header) on
+#   first use; each entry is numbered and timestamped. POSIX-only.
+addPrompt() {
+    root="${1:-$SELF_DIR}"
+    prompt="$2"
+    [ -n "$root" ] || root="$PWD"
+    [ -n "$prompt" ] || die "add-prompt: empty prompt text"
+    pf="$root/$SELF_AGENTS_DIR/$SELF_USER_DIR/$SELF_PROMPTS_FILE"
+    dir=$(dirname "$pf")
+    mkdir -p "$dir"
+    if [ ! -f "$pf" ]; then
+        {
+            printf '# %s\n\n' "$SELF_PROMPTS_FILE"
+            printf 'Prompt journal for `%s` — every prompt sent in this session,\n' "$(basename "$root")"
+            printf 'appended at EBT via `BeforeThinking.%s.Add(new Prompt)`.\n\n' "$SELF_PROMPTS_FILE"
+            printf -- '- Kept in: `%s`\n\n' "$pf"
+            printf -- '---\n\n'
+        } > "$pf"
+    fi
+    n=$(grep -c '^### Prompt ' "$pf" 2>/dev/null || true)
+    n=$((n + 1))
+    {
+        printf '### Prompt %d\n\n' "$n"
+        printf '```text\n%s\n```\n\n' "$prompt"
+        printf -- '- Added: %s (UTC)\n\n' "$(date -u +"$SELF_ISO_FMT")"
+    } >> "$pf"
+    say "prompt added: $pf (prompt #$n)"
+}
+
 # ---- Argument parsing ---------------------------------------------------------
 parse_args() {
     while [ "$#" -gt 0 ]; do
@@ -761,6 +807,8 @@ parse_args() {
             --handoff)       SELF_HANDOFF=1; shift ;;
             --search-hardcoded) SELF_SEARCH=1; shift ;;
             --update)        SELF_UPDATE=1; shift ;;
+            --add-prompt)    [ "$#" -ge 2 ] || die "missing value for $1"; SELF_ADDPROMPT=1; SELF_PROMPT_TEXT="$2"; shift 2 ;;
+            --add-prompt=*)  SELF_ADDPROMPT=1; SELF_PROMPT_TEXT="${1#*=}"; shift ;;
             --provenance)    SELF_PROVENANCE=1; shift ;;
             --no-provenance) SELF_PROVENANCE=0; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
@@ -825,6 +873,12 @@ main() {
     # Repo.Update(ForEveryFile)
     if [ "$SELF_UPDATE" -eq 1 ]; then
         updateEveryFile "$SELF_DIR"
+        exit 0
+    fi
+
+    # BeforeThinking.MyPrompts.md.Add(new Prompt)
+    if [ "$SELF_ADDPROMPT" -eq 1 ]; then
+        addPrompt "$SELF_DIR" "$SELF_PROMPT_TEXT"
         exit 0
     fi
 

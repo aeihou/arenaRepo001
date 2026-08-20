@@ -8,7 +8,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-20T01:01:47Z (added `AGENTS/SessionHand-off.md`; `--handoff` now refreshes both handoff docs)
+- **Last updated:** 2026-08-20T01:14:13Z (prompt journal `AGENTS/.user/MyPrompts.md` + `addPrompt()`/`--add-prompt`)
 
 ## Lifecycle hooks — EBT / EAT
 
@@ -33,6 +33,9 @@ Pipeline applied on every task:
    + `AGENTS/SessionHand-off.md`) at EBT (right after Synch) via
    `./SelfConstructor.sh --handoff`, so their `last_commit` always records the
    baseline tip a new agent builds on.
+6. **Prompt journal** — `BeforeThinking.MyPrompts.md.Add(new Prompt)`: at EBT,
+   append the incoming prompt to `AGENTS/.user/MyPrompts.md`
+   (`./SelfConstructor.sh --add-prompt "<prompt>"`).
 
 ## ExecuteBeforeThinking.DescribeMe(auto)
 
@@ -71,6 +74,7 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 | `AGENTS/README.md` | AGENTS workspace entry point (links `agents.md`) |
 | `AGENTS/PortableSessionAI.md` | Portable session export (procedures + data to continue the work) |
 | `AGENTS/SessionHand-off.md` | Essential hand-off: data + procedures to continue this session/context |
+| `AGENTS/.user/MyPrompts.md` | Prompt journal: every prompt sent this session (via `addPrompt`) |
 | `AGENTS/session.log` | Session export: `userPrompt` + `log.init()` (via `ExportSession`) |
 | `AGENTS/<ddmmaaaaHHMMSS>.md` | Timestamped self-construction snapshots |
 | `SRC/Tools/` | Self-constructed tools workspace (`Tools.md`, `README.md`) |
@@ -120,7 +124,9 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
   `updateEveryFile()` (`Repo.Update(ForEveryFile)` — re-sync every workspace
   README + regenerate the complete file inventory into the root
   self-description, classifying each file and attaching the command that
-  created it).
+  created it),
+  `addPrompt()` (`BeforeThinking.MyPrompts.md.Add(new Prompt)` — append each
+  new prompt to the session prompt journal `AGENTS/.user/MyPrompts.md` at EBT).
 
 ## Quick reference
 
@@ -138,4 +144,5 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 ./SelfConstructor.sh --handoff               # refresh PortableSessionAI.md fields
 ./SelfConstructor.sh --search-hardcoded      # report remaining hardcoded literals
 ./SelfConstructor.sh --update                # re-sync READMEs + regenerate file inventory
+./SelfConstructor.sh --add-prompt "prompt"   # append a prompt to AGENTS/.user/MyPrompts.md
 ```

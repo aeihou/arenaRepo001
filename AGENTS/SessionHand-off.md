@@ -3,14 +3,14 @@
 The essential data and procedures for another agent to continue this
 session/context.
 
-- **Generated:** 2026-08-20T01:01:47Z (UTC)
+- **Generated:** 2026-08-20T01:16:45Z (UTC)
 - **Repo:** `aeihou/arenaRepo001`
 - **Remote:** `https://github.com/aeihou/arenaRepo001.git`
 - **Branch (fixed):** `arena/01a01c09-arenarepo001`
 
 | Item | Value |
 |---|---|
-| Last pushed commit (at export) | f0c7bc1 |
+| Last pushed commit (at export) | a1e9891 |
 
 Deep-dive companion: [`AGENTS/PortableSessionAI.md`](PortableSessionAI.md).
 
@@ -51,6 +51,7 @@ remote=$(git ls-remote origin refs/heads/arena/01a01c09-arenarepo001 | cut -f1)
 | `Repo.Optimize(performance, hand-off timing)` | `--verify` (1 pass) + `--handoff` |
 | `Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables()` | `--search-hardcoded` + `SELF_*` |
 | `Repo.Update(ForEveryFile)` | `--update` |
+| `BeforeThinking.MyPrompts.md().Add(new Prompt)` | `--add-prompt TEXT` → `AGENTS/.user/MyPrompts.md` |
 | `SelfDescriberRepo().Update({$thisRepo})` | edit `arenaRepo001.md` |
 | `AGENTS/agents.md().Update($)` | edit `AGENTS/agents.md` |
 | `arena_AI.commitAndPush()` / `Arena_AI.pushAndCommit()` | commit + push |
@@ -61,12 +62,13 @@ remote=$(git ls-remote origin refs/heads/arena/01a01c09-arenarepo001 | cut -f1)
 
 **Flags:** `--dir` · `--name` · `--NameOfFolder` (`:`, `=`, space) ·
 `--auto-name` · `--name-sep` · `--sync-readmes` · `--verify` · `--check-docs` ·
-`--handoff` · `--search-hardcoded` · `--update` · `--provenance` /
+`--handoff` · `--search-hardcoded` · `--update` · `--add-prompt` · `--provenance` /
 `--no-provenance` · `--filename` · `--readme` · `--force` · `--no-reload` ·
 `--quiet` · `--help`.
 
 **Modes:** self-construct (default) · `--sync-readmes` · `--verify` ·
-`--check-docs` · `--handoff` · `--search-hardcoded` · `--update`.
+`--check-docs` · `--handoff` · `--search-hardcoded` · `--update` ·
+`--add-prompt`.
 
 **Invariants:** POSIX `#!/bin/sh` (`set -eu`), no bash arrays / GNU `grep -o` /
 `local` / `[[ ]]`; magic values only in the `SELF_*` Defaults block; idempotent
@@ -106,9 +108,10 @@ repo=arenaRepo001
 remote=https://github.com/aeihou/arenaRepo001.git
 branch=arena/01a01c09-arenarepo001
 base=main
-last_commit=f0c7bc1
+last_commit=a1e9891
 engine=SelfConstructor.sh
 self_description=arenaRepo001.md
+prompts=AGENTS/.user/MyPrompts.md
 agent_registry=AGENTS/agents.md
 session_log=AGENTS/session.log
 handoff=AGENTS/PortableSessionAI.md
@@ -117,6 +120,7 @@ verify=./SelfConstructor.sh --verify
 check_docs=./SelfConstructor.sh --check-docs
 search_hardcoded=./SelfConstructor.sh --search-hardcoded
 update=./SelfConstructor.sh --update
+add_prompt=./SelfConstructor.sh --add-prompt
 handoff_refresh=./SelfConstructor.sh --handoff
 timestamp_format=ddmmaaaaHHMMSS
 ```
