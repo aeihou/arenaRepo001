@@ -8,7 +8,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-19T23:16:00Z (`--check-docs` added: documentation <-> script verification)
+- **Last updated:** 2026-08-19T23:26:00Z (exported `AGENTS/PortableSessionAI.md` handoff)
 
 ## Lifecycle hooks — EBT / EAT
 
@@ -65,6 +65,7 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 | `README.md` | Session entry point / overview |
 | `AGENTS/agents.md` | This agent registry |
 | `AGENTS/README.md` | AGENTS workspace entry point (links `agents.md`) |
+| `AGENTS/PortableSessionAI.md` | Portable session export (procedures + data to continue the work) |
 | `AGENTS/session.log` | Session export: `userPrompt` + `log.init()` (via `ExportSession`) |
 | `AGENTS/<ddmmaaaaHHMMSS>.md` | Timestamped self-construction snapshots |
 | `SRC/Tools/` | Self-constructed tools workspace (`Tools.md`, `README.md`) |

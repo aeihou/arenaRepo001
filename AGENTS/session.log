@@ -41,3 +41,20 @@ self.Consistency.new(verify documentation to scripts)
     "implemented but not documented"
 - EAT.Commit&&Push(): committed + pushed to origin/<branch>
 
+
+---
+
+## userPrompt (next)
+
+newFile(/AGENTS/PortableSessionAI.md); and write to: the skill procedures and data you export to another agent_AI to be able to continue this conversation/Development/Context
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): recovered local (was back at 2f643c1) to true remote tip 019cae6
+- EBT.DescribeMe(auto): self-description before acting
+- Work: created AGENTS/PortableSessionAI.md (portable session export) with:
+  session identity, EBT synch procedure + stale-ref pitfall, pseudocode->sh
+  translation table, SelfConstructor.sh primitives/flags/env, EBT/EAT lifecycle,
+  self-description model, consistency tooling + current state, step-by-step
+  continuation procedure, machine-friendly data export, gotchas checklist
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>
