@@ -1,0 +1,128 @@
+# AGENTS/session.log — session export (arena_AI / arenaRepo001)
+
+log.init() at 2026-08-19T23:05:38Z
+
+## userPrompt
+
+Keep **ExecuteAfterThinking.Commit&&Push(); ExecuteBeforeThinking.Synch(Repo);
+ExecuteAfterThinking = EAT and ExecuteBeforeThinking = EBT;
+ExportSession("userPrompt,log.init()");**
+
+## Lifecycle applied this session
+
+- EBT = ExecuteBeforeThinking
+  1. Synch(Repo): git fetch (full refspec) + verify local HEAD == origin
+  2. DescribeMe(auto): self-description before acting
+- EAT = ExecuteAfterThinking
+  1. Commit&&Push(): git add -A && git commit && git push origin <branch>
+- ExportSession("userPrompt, log.init()"): this file
+
+## Notes
+
+- Synch(Repo) must compare against `git ls-remote` (or a freshly updated
+  remote-tracking ref), never a stale `origin/<branch>` ref.
+
+---
+
+## userPrompt (next)
+
+self.Consistency.new(verify documentation to scripts)
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): fetch (full refspec) + verify local HEAD == origin (87f3aef) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work: added `SelfConstructor.sh --check-docs` (POSIX, read-only)
+  - flags: --help header vs parse_args()
+  - env:   SELF_* used vs documented (internal state excluded)
+  - primitives: agents.md vs function defs (pseudocode aliases mapped)
+  - documented all env overrides in the header
+  - drift test: a copy missing the --check-docs doc is flagged as
+    "implemented but not documented"
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+
+---
+
+## userPrompt (next)
+
+newFile(/AGENTS/PortableSessionAI.md); and write to: the skill procedures and data you export to another agent_AI to be able to continue this conversation/Development/Context
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): recovered local (was back at 2f643c1) to true remote tip 019cae6
+- EBT.DescribeMe(auto): self-description before acting
+- Work: created AGENTS/PortableSessionAI.md (portable session export) with:
+  session identity, EBT synch procedure + stale-ref pitfall, pseudocode->sh
+  translation table, SelfConstructor.sh primitives/flags/env, EBT/EAT lifecycle,
+  self-description model, consistency tooling + current state, step-by-step
+  continuation procedure, machine-friendly data export, gotchas checklist
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+---
+
+## userPrompt (next)
+
+Repo.Optimize(performance, hand-off timing);
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): verified local HEAD == origin (f6eee3a) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work:
+  - performance: verify() now caches tree listings once (files + dirs) and
+    runs all checks against them -> 2 find passes instead of 5, same output
+  - hand-off timing: added ./SelfConstructor.sh --handoff (refreshHandoff())
+    that updates AGENTS/PortableSessionAI.md volatile fields (Generated,
+    last_commit, "Last pushed commit" row) from live git state in one pass
+  - timing rule: refresh at EBT post-sync; last_commit = baseline tip
+  - verify() now exempts PortableSessionAI.md from the <folder>.md rule
+    (intentional handoff doc, like agents.md)
+  - handoff refreshed: last_commit=f6eee3a, generated=2026-08-20T00:19:53Z
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+---
+
+## userPrompt (next)
+
+Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables();
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): verified local HEAD == origin (fecbd53) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work:
+  - Search: new ./SelfConstructor.sh --search-hardcoded (searchHardcoded(),
+    POSIX, read-only) reports literal hardcoded constants in *.sh files,
+    allowing them only in comments / the SELF_* Defaults block
+  - Replace: parameterized every magic value into the Defaults block and
+    pointed all code at the variables:
+      SELF_SCRIPT_NAME (script name in generated content/verify)
+      SELF_README / SELF_MARKER / SELF_LOG (verify + writeReadme + DUPED/REDUNDANT)
+      SELF_AGENTS_DIR / SELF_AGENTS_FILE / SELF_HANDOFF_FILE (checkDocs/refreshHandoff/verify)
+      SELF_GITDIR (.git prune), SELF_TS_FMT (ddmmaaaaHHMMSS), SELF_ISO_FMT (ISO date)
+  - converted variable-in-case-pattern uses to strict-POSIX if/continue
+  - result: --search-hardcoded reports no literals; --check-docs green;
+    --verify unchanged (4 demo workspaces); functional self-construct OK
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+---
+
+## userPrompt (next)
+
+Repo.Update(ForEveryFile);
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): verified local HEAD == origin (c19f3d6) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work:
+  - new ./SelfConstructor.sh --update (updateEveryFile(), POSIX):
+    1. re-sync every workspace README (--sync-readmes pass)
+    2. build a complete file inventory (every file classified by type +
+       provenance from nearest .selfconstructor.log, else 'committed')
+    3. inject it into arenaRepo001.md between file-inventory markers
+  - fixed a POSIX temp-variable collision (injectInventory reused 'tmp'),
+    which had leaked .update.<pid> dirs; renamed to itmp/utmp/uinv
+  - result: inventory == 19 files == git ls-files; no temp leak
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>

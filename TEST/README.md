@@ -1,19 +1,14 @@
-# arenaRepo001
+# TEST
 
 Self-described workspace, initialized by `SelfConstructor.sh`.
 
-- Folder: /home/user/arenaRepo001
-- Self description: [arenaRepo001.md](arenaRepo001.md)
+- Folder: /home/user/arenaRepo001/TEST
+- Self description: [TEST.md](TEST.md)
 
 ## Contents
 
-- AGENTS/
-- MyTest/
-- SRC/
-- SelfConstructor.sh
-- TEST/
-- arenaRepo001-19082026222314/
-- arenaRepo001.md
+- 19082026223433/
+- TEST.md
 
 ## Last updated
 
