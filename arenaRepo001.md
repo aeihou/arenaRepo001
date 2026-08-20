@@ -73,6 +73,21 @@ Result: OK — documentation matches the script (verified 2026-08-19T23:16:00Z).
   EBT (post-sync) each turn so `last_commit` always records the baseline tip a
   new agent builds on.
 
+## Hardcoded variables
+
+`Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables()`:
+
+- **Search:** `./SelfConstructor.sh --search-hardcoded` reports literal
+  occurrences of the parameterized constants (names, markers, paths, date
+  formats) outside the Defaults block — read-only, POSIX.
+- **Replace:** every magic value now lives in the `SELF_*` Defaults block
+  (`SELF_SCRIPT_NAME`, `SELF_README`, `SELF_MARKER`, `SELF_LOG`,
+  `SELF_AGENTS_DIR`, `SELF_AGENTS_FILE`, `SELF_HANDOFF_FILE`, `SELF_GITDIR`,
+  `SELF_TS_FMT` = `ddmmaaaaHHMMSS`, `SELF_ISO_FMT`); code references the
+  variables only.
+- **Result:** the scan reports **no** hardcoded literals (verified
+  2026-08-19T23:40:00Z).
+
 ## Rebuild
 
     ./SelfConstructor.sh --dir "/home/user/arenaRepo001" --name "arenaRepo001"

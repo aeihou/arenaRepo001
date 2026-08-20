@@ -8,7 +8,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-19T23:33:00Z (`Repo.Optimize(performance, hand-off timing)`: single-pass verify + `--handoff` refresh)
+- **Last updated:** 2026-08-19T23:40:00Z (`Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables()`: all magic values parameterized into `SELF_*` defaults)
 
 ## Lifecycle hooks — EBT / EAT
 
@@ -94,6 +94,9 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 - **Lifecycle:** `EBT` (`ExecuteBeforeThinking`) = Synch(Repo) → DescribeMe(auto);
   `EAT` (`ExecuteAfterThinking`) = Commit&&Push();
   `ExportSession("userPrompt, log.init()")` → `AGENTS/session.log`.
+- **No hardcoded variables:** magic values live only in the `SELF_*` Defaults
+  block (names, markers, paths, date formats); code references the variables.
+  `./SelfConstructor.sh --search-hardcoded` enforces this (must report none).
 - **Pseudocode primitives:** `initWorkspace()`, `initSession()`,
   `selfConstructor()`, `nameOfFolder().newFile()`, `newSession.Reload()`,
   `autoNameIfNeeded()` (`if (Not)nameOfFolder -> mkdir("nameOfFolder: ddmmaaaaHHMMSS")`),
@@ -107,7 +110,10 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
   POSIX cross-check of the --help header + AGENTS/agents.md against the flags,
   env vars and primitives the script actually implements),
   `refreshHandoff()` (`Repo.Optimize(performance, hand-off timing)` — refresh
-  `AGENTS/PortableSessionAI.md` volatile fields from live git state in one pass).
+  `AGENTS/PortableSessionAI.md` volatile fields from live git state in one pass),
+  `searchHardcoded()` (`Repo.SearchForHardodedVariables()` — report literal
+  occurrences of the parameterized constants; after
+  `ReplaceFixedHarcodedVariables()` they may only live in the Defaults block).
 
 ## Quick reference
 
@@ -123,4 +129,5 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 ./SelfConstructor.sh --verify                # duped/outdated/redundant/misplaced scan
 ./SelfConstructor.sh --check-docs            # documentation <-> script consistency
 ./SelfConstructor.sh --handoff               # refresh PortableSessionAI.md fields
+./SelfConstructor.sh --search-hardcoded      # report remaining hardcoded literals
 ```

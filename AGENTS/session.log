@@ -80,3 +80,28 @@ Repo.Optimize(performance, hand-off timing);
     (intentional handoff doc, like agents.md)
   - handoff refreshed: last_commit=f6eee3a, generated=2026-08-20T00:19:53Z
 - EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+---
+
+## userPrompt (next)
+
+Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables();
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): verified local HEAD == origin (fecbd53) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work:
+  - Search: new ./SelfConstructor.sh --search-hardcoded (searchHardcoded(),
+    POSIX, read-only) reports literal hardcoded constants in *.sh files,
+    allowing them only in comments / the SELF_* Defaults block
+  - Replace: parameterized every magic value into the Defaults block and
+    pointed all code at the variables:
+      SELF_SCRIPT_NAME (script name in generated content/verify)
+      SELF_README / SELF_MARKER / SELF_LOG (verify + writeReadme + DUPED/REDUNDANT)
+      SELF_AGENTS_DIR / SELF_AGENTS_FILE / SELF_HANDOFF_FILE (checkDocs/refreshHandoff/verify)
+      SELF_GITDIR (.git prune), SELF_TS_FMT (ddmmaaaaHHMMSS), SELF_ISO_FMT (ISO date)
+  - converted variable-in-case-pattern uses to strict-POSIX if/continue
+  - result: --search-hardcoded reports no literals; --check-docs green;
+    --verify unchanged (4 demo workspaces); functional self-construct OK
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>

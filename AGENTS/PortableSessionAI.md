@@ -4,7 +4,7 @@ Portable session export for `arenaRepo001` — the skill procedures and data
 another `agent_AI` needs to continue this conversation / development / context.
 
 - **Exported by:** `arena_AI` (Arena.ai Agent Mode)
-- **Generated:** 2026-08-20T00:19:53Z (UTC)
+- **Generated:** 2026-08-20T00:33:27Z (UTC)
 - **Session branch:** `arena/01a01c09-arenarepo001`
 - **Remote:** `https://github.com/aeihou/arenaRepo001.git`
 
@@ -17,7 +17,7 @@ another `agent_AI` needs to continue this conversation / development / context.
 | Repository | `aeihou/arenaRepo001` |
 | Working branch (fixed) | `arena/01a01c09-arenarepo001` |
 | Base branch | `main` @ `2f643c1` |
-| Last pushed commit (at export) | f6eee3a |
+| Last pushed commit (at export) | fecbd53 |
 | Owner style | pseudocode → parametrizable POSIX `sh` artifacts |
 
 > **Rule:** always work on `arena/01a01c09-arenarepo001`. Never switch, create,
@@ -94,6 +94,7 @@ translation into the implemented `SelfConstructor.sh`:
 | `For EveryNewFileConstructor()` | provenance: keep the command that created each file |
 | `Repo.Verify(consistency().Includes("duped OR outdated OR redundant OR misplaced"))` | `--verify` scan |
 | `self.Consistency.new(verify documentation to scripts)` | `--check-docs` scan |
+| `Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables()` | `--search-hardcoded` scan; parameterize magic values into `SELF_*` defaults |
 | `SelfDescriberRepo().Update({$thisRepo})` | update `arenaRepo001.md` after each change |
 | `AGENTS/agents.md().Update($)` | update the agent registry |
 | `arena_AI.commitAndPush()` / `Arena_AI.pushAndCommit()` | commit + push to the session branch |
@@ -108,20 +109,23 @@ Self-executing, POSIX `#!/bin/sh` (dash-safe, `set -eu`), parametrizable.
 
 `nameOfFolder` · `autoNameIfNeeded` · `newFile` · `initWorkspace` ·
 `initSession` (delegates to `writeReadme`) · `writeReadme` · `reloadSession` ·
-`selfConstructor` · `syncReadmes` · `verify` · `checkDocs` ·
-`invocationCommand` · `logCreatedFile` · `provenanceFooter` · `tokens`.
+`selfConstructor` · `syncReadmes` · `verify` · `checkDocs` · `refreshHandoff` ·
+`searchHardcoded` · `invocationCommand` · `logCreatedFile` ·
+`provenanceFooter` · `tokens`.
 
 ### 4.2 CLI flags (CLI wins over env)
 
 `--dir` · `--name` · `--NameOfFolder` (`:`, `=`, space forms) · `--auto-name` ·
-`--name-sep` · `--sync-readmes` · `--verify` · `--check-docs` ·
-`--provenance` / `--no-provenance` · `--filename` · `--readme` · `--force` ·
-`--no-reload` · `--quiet` · `--help`.
+`--name-sep` · `--sync-readmes` · `--verify` · `--check-docs` · `--handoff` ·
+`--search-hardcoded` · `--provenance` / `--no-provenance` · `--filename` ·
+`--readme` · `--force` · `--no-reload` · `--quiet` · `--help`.
 
 ### 4.3 Environment (overridable)
 
 `SELF_DIR` · `SELF_NAME` · `SELF_FILENAME` · `SELF_README` · `SELF_MARKER` ·
-`SELF_LOG` · `SELF_PROVENANCE` · `SELF_AUTO_NAME` · `SELF_NAME_SEP`.
+`SELF_LOG` · `SELF_PROVENANCE` · `SELF_AUTO_NAME` · `SELF_NAME_SEP` ·
+`SELF_AGENTS_DIR` · `SELF_AGENTS_FILE` · `SELF_HANDOFF_FILE` ·
+`SELF_SCRIPT_NAME` · `SELF_GITDIR` · `SELF_TS_FMT` · `SELF_ISO_FMT`.
 
 ### 4.4 Guarantees
 
@@ -189,7 +193,10 @@ Demo workspaces (kept, flagged REDUNDANT by `--verify`): `MyTest/`,
   (files + dirs) and runs all four checks against the cached listings
   (2 `find` passes instead of 5).
 - `./SelfConstructor.sh --handoff` → refreshes this file's volatile fields.
-- Both are **read-only**; always re-run them before committing changes.
+- `./SelfConstructor.sh --search-hardcoded` → reports literal hardcoded
+  variables; after the `ReplaceFixedHarcodedVariables()` refactor it must
+  report **none** (magic values live only in the `SELF_*` Defaults block).
+- All checks are **read-only**; always re-run them before committing changes.
 
 ---
 
@@ -230,7 +237,7 @@ repo=arenaRepo001
 remote=https://github.com/aeihou/arenaRepo001.git
 branch=arena/01a01c09-arenarepo001
 base=main
-last_commit=f6eee3a
+last_commit=fecbd53
 self_description=arenaRepo001.md
 agent_registry=AGENTS/agents.md
 session_log=AGENTS/session.log
@@ -238,7 +245,9 @@ handoff=AGENTS/PortableSessionAI.md
 engine=SelfConstructor.sh
 verify=./SelfConstructor.sh --verify
 check_docs=./SelfConstructor.sh --check-docs
+search_hardcoded=./SelfConstructor.sh --search-hardcoded
 sync_readmes=./SelfConstructor.sh --sync-readmes
+handoff=./SelfConstructor.sh --handoff
 timestamp_format=ddmmaaaaHHMMSS
 ```
 
@@ -254,5 +263,7 @@ timestamp_format=ddmmaaaaHHMMSS
    (use plain variables), no `mapfile`.
 4. `ddmmaaaaHHMMSS` uses a **4-digit year**; the earlier `ddmmaahhmmss`
    (2-digit) form was corrected once — do not reintroduce it.
-5. Commit message should name the pseudocode directive it implements (keeps the
+5. No hardcoded magic values in code — reference the `SELF_*` defaults
+   (names, markers, paths, date formats). `--search-hardcoded` must stay clean.
+6. Commit message should name the pseudocode directive it implements (keeps the
    history traceable to the owner's intent).

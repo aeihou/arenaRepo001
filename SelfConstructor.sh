@@ -41,6 +41,10 @@
 #                           volatile fields (Generated + last_commit) of
 #                           AGENTS/PortableSessionAI.md from live git state, in a
 #                           single pass (no tree walk)
+#  12. searchHardcoded   -> Repo.SearchForHardodedVariables(): report literal
+#                           occurrences of the parameterized constants. After the
+#                           ReplaceFixedHarcodedVariables() refactor they may only
+#                           live in the Defaults block (or in comments).
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
@@ -58,6 +62,7 @@
 #                             (flags, env vars, primitives; POSIX, read-only)
 #       --handoff             refresh AGENTS/PortableSessionAI.md volatile fields
 #                             (Generated + last_commit) from live git state
+#       --search-hardcoded    report literal hardcoded variables in *.sh files
 #       --provenance          annotate every created file with the command that
 #                             made it (default ON; set --no-provenance to disable)
 #   -f, --filename FILE       self-description file   (env: SELF_FILENAME)
@@ -77,10 +82,13 @@
 #   ./SelfConstructor.sh --verify
 #   ./SelfConstructor.sh --check-docs
 #   ./SelfConstructor.sh --handoff
+#   ./SelfConstructor.sh --search-hardcoded
 #
 # Environment (overridable; CLI wins):
 #   SELF_DIR SELF_NAME SELF_FILENAME SELF_README SELF_MARKER SELF_LOG
 #   SELF_PROVENANCE SELF_AUTO_NAME SELF_NAME_SEP
+#   SELF_AGENTS_DIR SELF_AGENTS_FILE SELF_HANDOFF_FILE SELF_SCRIPT_NAME
+#   SELF_GITDIR SELF_TS_FMT SELF_ISO_FMT
 # ==============================================================================
 
 set -eu
@@ -92,6 +100,13 @@ SELF_FILENAME="${SELF_FILENAME:-}"
 SELF_README="${SELF_README:-README.md}"
 SELF_MARKER="${SELF_MARKER:-.selfconstructor.rc}"
 SELF_LOG="${SELF_LOG:-.selfconstructor.log}"
+SELF_AGENTS_DIR="${SELF_AGENTS_DIR:-AGENTS}"
+SELF_AGENTS_FILE="${SELF_AGENTS_FILE:-agents.md}"
+SELF_HANDOFF_FILE="${SELF_HANDOFF_FILE:-PortableSessionAI.md}"
+SELF_SCRIPT_NAME="${SELF_SCRIPT_NAME:-SelfConstructor.sh}"
+SELF_GITDIR="${SELF_GITDIR:-.git}"
+SELF_TS_FMT="${SELF_TS_FMT:-%d%m%Y%H%M%S}"
+SELF_ISO_FMT="${SELF_ISO_FMT:-%Y-%m-%dT%H:%M:%SZ}"
 SELF_PROVENANCE="${SELF_PROVENANCE:-1}"
 SELF_AUTO_NAME="${SELF_AUTO_NAME:-0}"
 SELF_MKNAME="${SELF_MKNAME:-0}"
@@ -99,6 +114,7 @@ SELF_SYNC="${SELF_SYNC:-0}"
 SELF_VERIFY="${SELF_VERIFY:-0}"
 SELF_CHKDOCS="${SELF_CHKDOCS:-0}"
 SELF_HANDOFF="${SELF_HANDOFF:-0}"
+SELF_SEARCH="${SELF_SEARCH:-0}"
 SELF_NAME_SEP="${SELF_NAME_SEP:--}"
 SELF_FORCE="${SELF_FORCE:-0}"
 SELF_QUIET="${SELF_QUIET:-0}"
@@ -152,7 +168,7 @@ logCreatedFile() {
     [ "$SELF_PROVENANCE" -eq 1 ] || return 0
     d="$1"; rel="$2"
     printf '%s %s via: %s\n' \
-        "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+        "$(date -u +"$SELF_ISO_FMT")" \
         "$rel" \
         "$(invocationCommand)" >> "$d/$SELF_LOG"
 }
@@ -164,7 +180,7 @@ provenanceFooter() {
     printf '\n## Created by\n\n'
     printf -- '- Script: %s\n' "$(basename "$SELF_SCRIPT")"
     printf -- '- Command: %s\n' "$(invocationCommand)"
-    printf -- '- Timestamp: %s\n' "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    printf -- '- Timestamp: %s\n' "$(date -u +"$SELF_ISO_FMT")"
 }
 
 # autoNameIfNeeded()
@@ -175,7 +191,7 @@ provenanceFooter() {
 autoNameIfNeeded() {
     [ "$SELF_AUTO_NAME" -eq 1 ] || return 0
     [ -z "$SELF_NAME" ] || return 0
-    SELF_NAME="$(nameOfFolder)${SELF_NAME_SEP}$(date +%d%m%Y%H%M%S)"
+    SELF_NAME="$(nameOfFolder)${SELF_NAME_SEP}$(date +"$SELF_TS_FMT")"
     SELF_DIR="$SELF_DIR/$SELF_NAME"
     mkdir -p "$SELF_DIR"
     say "mkdir: $SELF_DIR (auto-name $SELF_NAME)"
@@ -233,7 +249,7 @@ reloadSession() {
 selfConstructor() {
     name="$1"
     filename="${SELF_FILENAME:-${name}.md}"
-    stamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    stamp=$(date -u +"$SELF_ISO_FMT")
 
     initWorkspace
 
@@ -247,7 +263,7 @@ Self-constructed description of the **$name** workspace.
 
 - Folder: $SELF_DIR
 - File: $filename
-- Generator: SelfConstructor.sh
+- Generator: $SELF_SCRIPT_NAME
 - Created: $stamp
 
 ## Link
@@ -256,7 +272,7 @@ Self-constructed description of the **$name** workspace.
 
 ## Rebuild
 
-    ./SelfConstructor.sh --dir "$SELF_DIR" --name "$name"
+    ./$SELF_SCRIPT_NAME --dir "$SELF_DIR" --name "$name"
 EOF
 
     # initSession(README) — written after the self-description so the README's
@@ -268,20 +284,18 @@ EOF
 #   (Re)generates the README.md for a single self-described workspace.
 writeReadme() {
     d="$1"; name="$2"
-    stamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    stamp=$(date -u +"$SELF_ISO_FMT")
     tmp="$d/.README.tmp.$$"
     {
         printf '# %s\n\n' "$name"
-        printf 'Self-described workspace, initialized by `SelfConstructor.sh`.\n\n'
+        printf 'Self-described workspace, initialized by `%s`.\n\n' "$SELF_SCRIPT_NAME"
         printf -- '- Folder: %s\n' "$d"
         printf -- '- Self description: [%s.md](%s.md)\n\n' "$name" "$name"
         printf '## Contents\n\n'
         for e in "$d"/*; do
             [ -e "$e" ] || continue
             b=$(basename "$e")
-            case "$b" in
-                "$SELF_README") continue ;;
-            esac
+            [ "$b" = "$SELF_README" ] && continue
             if [ -d "$e" ]; then
                 printf -- '- %s/\n' "$b"
             else
@@ -289,7 +303,7 @@ writeReadme() {
             fi
         done
         printf '\n## Last updated\n\n- %s\n\n' "$stamp"
-        printf '## Usage\n\n    ./SelfConstructor.sh --help\n'
+        printf '## Usage\n\n    ./%s --help\n' "$SELF_SCRIPT_NAME"
         provenanceFooter
     } > "$tmp"
     logCreatedFile "$d" "$SELF_README"
@@ -304,7 +318,7 @@ writeReadme() {
 syncReadmes() {
     root="${1:-$SELF_DIR}"
     [ -n "$root" ] || root="$PWD"
-    find "$root" -name .git -prune -o -type d -print | sort \
+    find "$root" -name "$SELF_GITDIR" -prune -o -type d -print | sort \
     | while IFS= read -r d; do
         name=$(basename "$d")
         selfdesc="$d/$name.md"
@@ -336,16 +350,18 @@ verify() {
     # ---- Single-pass collection (performance) ----------------------------------
     # Walk the tree exactly twice (files once, dirs once) and run every check
     # against the cached listings instead of re-walking per category.
-    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o -type f -print \
+    find "$root" -name "$SELF_GITDIR" -prune -o -path "$out" -prune -o -type f -print \
     | sort > "$files"
-    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o -type d -print \
+    find "$root" -name "$SELF_GITDIR" -prune -o -path "$out" -prune -o -type d -print \
     | sort > "$dirs"
 
     # ---- DUPED: exact content duplicates (identical size + crc) ---------------
     # Runtime artifacts (audit log + first-run marker) are intentionally similar
     # across workspaces and are gitignored, so they are excluded from this scan.
-    grep -vE '/(\.selfconstructor\.rc|\.selfconstructor\.log)$' "$files" \
-    | while IFS= read -r f; do cksum "$f"; done \
+    while IFS= read -r f; do
+        b=$(basename "$f")
+        [ "$b" = "$SELF_MARKER" ] || [ "$b" = "$SELF_LOG" ] || cksum "$f"
+    done < "$files" \
     | sort -k1,1 -k2,2 \
     | awk '{
         name = $0; sub(/^[^ ]+ [^ ]+ /, "", name)
@@ -355,15 +371,15 @@ verify() {
       }' > "$dup"
 
     # ---- OUTDATED -------------------------------------------------------------
-    canon="$root/SelfConstructor.sh"
+    canon="$root/$SELF_SCRIPT_NAME"
     if [ -f "$canon" ]; then
-        grep '/SelfConstructor.sh$' "$files" \
+        grep "/${SELF_SCRIPT_NAME}\$" "$files" \
         | while IFS= read -r f; do
             [ "$f" = "$canon" ] && continue
             cmp -s "$f" "$canon" || echo "$f" >> "$outd"
         done
     fi
-    grep '/README.md$' "$files" \
+    grep "/${SELF_README}\$" "$files" \
     | while IFS= read -r f; do
         grep -q '## Contents' "$f" || echo "$f (old template)" >> "$outd"
     done
@@ -377,10 +393,12 @@ verify() {
         for e in "$d"/* "$d"/.[!.]*; do
             [ -e "$e" ] || continue
             b=$(basename "$e")
-            case "$b" in
-                "$base.md"|README.md|.selfconstructor.rc|.selfconstructor.log) ;;
-                *) extra=1 ;;
-            esac
+            if [ "$b" = "$base.md" ] || [ "$b" = "$SELF_README" ] \
+               || [ "$b" = "$SELF_MARKER" ] || [ "$b" = "$SELF_LOG" ]; then
+                :
+            else
+                extra=1
+            fi
         done
         [ "$extra" -eq 0 ] && echo "$d" >> "$red"
     done < "$dirs"
@@ -391,8 +409,11 @@ verify() {
     | while IFS= read -r f; do
         d=$(dirname "$f"); b=$(basename "$f")
         folder=$(basename "$d")
+        if [ "$b" = "$SELF_README" ] || [ "$b" = "$SELF_AGENTS_FILE" ] \
+           || [ "$b" = "$SELF_HANDOFF_FILE" ]; then
+            continue
+        fi
         case "$b" in
-            README.md|agents.md|PortableSessionAI.md) continue ;;
             [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].md) continue ;;
         esac
         if [ "$folder" = "." ] || [ -z "$folder" ]; then folder="$rootname"; fi
@@ -449,7 +470,7 @@ checkDocs() {
     root="${1:-$SELF_DIR}"
     [ -n "$root" ] || root="$PWD"
     script="$0"
-    agents="$root/AGENTS/agents.md"
+    agents="$root/$SELF_AGENTS_DIR/$SELF_AGENTS_FILE"
     tmp="$root/.checkdocs.$$"
     mkdir -p "$tmp"
     trap 'rm -rf "$tmp"' 0 1 2 3 15
@@ -464,7 +485,7 @@ checkDocs() {
 
     tokens 'SELF_[A-Z_]+' < "$hdr" | sort -u > "$tmp/env_doc"
     tokens 'SELF_[A-Z_]+' < "$script" \
-        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_HANDOFF|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
+        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_HANDOFF|SELF_SEARCH|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
         | sort -u > "$tmp/env_impl"
 
     say "Self.Consistency — documentation <-> script ($script)"
@@ -497,7 +518,7 @@ checkDocs() {
             grep -qE "^$fn\(\)" "$script" || echo "  - $fn()"
         done
     else
-        say "  (AGENTS/agents.md not found)"
+        say "  ($SELF_AGENTS_DIR/$SELF_AGENTS_FILE not found)"
     fi
     say ""
     say "done."
@@ -516,9 +537,9 @@ checkDocs() {
 refreshHandoff() {
     root="${1:-$SELF_DIR}"
     [ -n "$root" ] || root="$PWD"
-    hf="$root/AGENTS/PortableSessionAI.md"
+    hf="$root/$SELF_AGENTS_DIR/$SELF_HANDOFF_FILE"
     [ -f "$hf" ] || die "handoff: not found: $hf"
-    stamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    stamp=$(date -u +"$SELF_ISO_FMT")
     short=$( (cd "$root" && git rev-parse --short HEAD) 2>/dev/null || printf '%s' "unknown" )
     tmp="$hf.tmp.$$"
     sed \
@@ -530,6 +551,61 @@ refreshHandoff() {
     say "handoff refreshed: $hf"
     say "  generated  : $stamp"
     say "  last_commit: $short"
+}
+
+# searchHardcoded([root])
+#   Repo.SearchForHardodedVariables()
+#   Read-only, POSIX-only scan of every *.sh file under root for literal
+#   occurrences of the values that must stay parameterized (see the Defaults
+#   block). A value may appear literally only as a SELF_* default assignment or
+#   inside a comment; anywhere else it is a hardcoded variable to replace.
+searchHardcoded() {
+    root="${1:-$SELF_DIR}"
+    [ -n "$root" ] || root="$PWD"
+    script=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
+    s=$(grep -n '^# <<<search-tokens' "$script" | cut -d: -f1 | head -1)
+    e=$(grep -n '^# >>>search-tokens' "$script" | cut -d: -f1 | head -1)
+    [ -n "$s" ] || s=0
+    [ -n "$e" ] || e=0
+    report="$root/.search.$$"
+    : > "$report"
+    say "Repo.SearchForHardodedVariables — literal scan under $root"
+    say ""
+# <<<search-tokens
+    TOKENS='.selfconstructor.rc
+.selfconstructor.log
+README.md
+SelfConstructor.sh
+AGENTS/agents.md
+AGENTS/PortableSessionAI.md
+%d%m%Y%H%M%S
+%Y-%m-%dT%H:%M:%SZ'
+# >>>search-tokens
+    find "$root" -name "$SELF_GITDIR" -prune -o -type f -name '*.sh' -print \
+    | while IFS= read -r f; do
+        printf '%s\n' "$TOKENS" | while IFS= read -r tok; do
+            [ -n "$tok" ] || continue
+            echo "== $tok ==" >> "$report"
+            grep -nF "$tok" "$f" \
+            | awk -v file="$f" -v me="$script" -v s="$s" -v e="$e" '
+                {
+                    num = $0; sub(/:.*/, "", num)
+                    rest = $0; sub(/^[0-9]+:/, "", rest)
+                    if (file == me && num+0 >= s+0 && num+0 <= e+0) next
+                    if (rest ~ /^[[:space:]]*#/) next
+                    if (rest ~ /^SELF_[A-Z_]*=/) next
+                    print "  - " file ":" $0
+                }' >> "$report"
+        done
+    done
+    cat "$report"
+    n=$(grep -c '^  - ' "$report" 2>/dev/null || true)
+    if [ "$n" -eq 0 ]; then
+        say "result: no hardcoded literals remain outside the Defaults block."
+    else
+        say "result: $n hardcoded literal(s) to replace (see above)."
+    fi
+    rm -f "$report"
 }
 
 # ---- Argument parsing ---------------------------------------------------------
@@ -549,6 +625,7 @@ parse_args() {
             --verify)        SELF_VERIFY=1; shift ;;
             --check-docs)    SELF_CHKDOCS=1; shift ;;
             --handoff)       SELF_HANDOFF=1; shift ;;
+            --search-hardcoded) SELF_SEARCH=1; shift ;;
             --provenance)    SELF_PROVENANCE=1; shift ;;
             --no-provenance) SELF_PROVENANCE=0; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
@@ -604,6 +681,12 @@ main() {
         exit 0
     fi
 
+    # Repo.SearchForHardodedVariables()
+    if [ "$SELF_SEARCH" -eq 1 ]; then
+        searchHardcoded "$SELF_DIR"
+        exit 0
+    fi
+
     # self.Consistency.new(verify documentation to scripts)
     if [ "$SELF_CHKDOCS" -eq 1 ]; then
         checkDocs "$SELF_DIR"
@@ -647,7 +730,7 @@ main() {
         printf '%s\n' \
             "name=$name" \
             "dir=$SELF_DIR" \
-            "created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            "created=$(date -u +"$SELF_ISO_FMT")" \
             > "$SELF_DIR/$SELF_MARKER"
 
         reloadSession
