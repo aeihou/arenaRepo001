@@ -58,3 +58,25 @@ newFile(/AGENTS/PortableSessionAI.md); and write to: the skill procedures and da
   self-description model, consistency tooling + current state, step-by-step
   continuation procedure, machine-friendly data export, gotchas checklist
 - EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+---
+
+## userPrompt (next)
+
+Repo.Optimize(performance, hand-off timing);
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): verified local HEAD == origin (f6eee3a) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work:
+  - performance: verify() now caches tree listings once (files + dirs) and
+    runs all checks against them -> 2 find passes instead of 5, same output
+  - hand-off timing: added ./SelfConstructor.sh --handoff (refreshHandoff())
+    that updates AGENTS/PortableSessionAI.md volatile fields (Generated,
+    last_commit, "Last pushed commit" row) from live git state in one pass
+  - timing rule: refresh at EBT post-sync; last_commit = baseline tip
+  - verify() now exempts PortableSessionAI.md from the <folder>.md rule
+    (intentional handoff doc, like agents.md)
+  - handoff refreshed: last_commit=f6eee3a, generated=2026-08-20T00:19:53Z
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>

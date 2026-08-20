@@ -4,7 +4,7 @@ Portable session export for `arenaRepo001` — the skill procedures and data
 another `agent_AI` needs to continue this conversation / development / context.
 
 - **Exported by:** `arena_AI` (Arena.ai Agent Mode)
-- **Generated:** 2026-08-19 (UTC)
+- **Generated:** 2026-08-20T00:19:53Z (UTC)
 - **Session branch:** `arena/01a01c09-arenarepo001`
 - **Remote:** `https://github.com/aeihou/arenaRepo001.git`
 
@@ -17,7 +17,7 @@ another `agent_AI` needs to continue this conversation / development / context.
 | Repository | `aeihou/arenaRepo001` |
 | Working branch (fixed) | `arena/01a01c09-arenarepo001` |
 | Base branch | `main` @ `2f643c1` |
-| Last pushed commit (at export) | `019cae6` — *self.Consistency.new(verify documentation to scripts)* |
+| Last pushed commit (at export) | f6eee3a |
 | Owner style | pseudocode → parametrizable POSIX `sh` artifacts |
 
 > **Rule:** always work on `arena/01a01c09-arenarepo001`. Never switch, create,
@@ -47,6 +47,22 @@ git status --short   # expect clean
 **Lesson recorded (must not repeat):** never compare against a stale
 `origin/<branch>` remote-tracking ref. Use `git ls-remote` (or a fetch with the
 full `refs/heads/...:refs/remotes/origin/...` refspec) before any `reset`.
+
+### 2.1b Hand-off timing (`Repo.Optimize(performance, hand-off timing)`)
+
+This handoff is refreshed at **EBT**, right after `Synch(Repo)`, so its
+`Generated` and `last_commit` fields always record the **baseline tip** — the
+state a fresh agent builds on. Refresh is a single pass (one `git rev-parse`
++ one `date` + one `sed`; no tree walk):
+
+```sh
+./SelfConstructor.sh --handoff
+```
+
+Commit the refreshed handoff together with the turn's work. Its `last_commit`
+then equals the parent of the commit a new agent clones — an unambiguous,
+non-stale hand-off point. `--verify` treats `PortableSessionAI.md` as an
+intentional non-`<folder>.md` file (exempt, like `agents.md`).
 
 ### 2.2 `ExecuteBeforeThinking.DescribeMe(auto)`
 
@@ -169,6 +185,10 @@ Demo workspaces (kept, flagged REDUNDANT by `--verify`): `MyTest/`,
 - `./SelfConstructor.sh --check-docs` → documentation ↔ script. Current:
   **green** (flags, env, primitives all consistent). Drift-tested: an
   undocumented-but-implemented flag is reported correctly.
+- `./SelfConstructor.sh --verify` → performance: collects the tree once
+  (files + dirs) and runs all four checks against the cached listings
+  (2 `find` passes instead of 5).
+- `./SelfConstructor.sh --handoff` → refreshes this file's volatile fields.
 - Both are **read-only**; always re-run them before committing changes.
 
 ---
@@ -210,7 +230,7 @@ repo=arenaRepo001
 remote=https://github.com/aeihou/arenaRepo001.git
 branch=arena/01a01c09-arenarepo001
 base=main
-last_commit=019cae6
+last_commit=f6eee3a
 self_description=arenaRepo001.md
 agent_registry=AGENTS/agents.md
 session_log=AGENTS/session.log

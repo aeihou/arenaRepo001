@@ -37,6 +37,10 @@
 #  10. checkDocs         -> self.Consistency.new(verify documentation to scripts):
 #                           cross-checks --help/agents.md docs against the flags,
 #                           env vars and primitives the script actually implements
+#  11. refreshHandoff    -> Repo.Optimize(performance, hand-off timing): refresh the
+#                           volatile fields (Generated + last_commit) of
+#                           AGENTS/PortableSessionAI.md from live git state, in a
+#                           single pass (no tree walk)
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
@@ -52,6 +56,8 @@
 #                             misplaced (POSIX, read-only)
 #       --check-docs          verify documentation <-> script consistency
 #                             (flags, env vars, primitives; POSIX, read-only)
+#       --handoff             refresh AGENTS/PortableSessionAI.md volatile fields
+#                             (Generated + last_commit) from live git state
 #       --provenance          annotate every created file with the command that
 #                             made it (default ON; set --no-provenance to disable)
 #   -f, --filename FILE       self-description file   (env: SELF_FILENAME)
@@ -70,6 +76,7 @@
 #   ./SelfConstructor.sh --sync-readmes
 #   ./SelfConstructor.sh --verify
 #   ./SelfConstructor.sh --check-docs
+#   ./SelfConstructor.sh --handoff
 #
 # Environment (overridable; CLI wins):
 #   SELF_DIR SELF_NAME SELF_FILENAME SELF_README SELF_MARKER SELF_LOG
@@ -91,6 +98,7 @@ SELF_MKNAME="${SELF_MKNAME:-0}"
 SELF_SYNC="${SELF_SYNC:-0}"
 SELF_VERIFY="${SELF_VERIFY:-0}"
 SELF_CHKDOCS="${SELF_CHKDOCS:-0}"
+SELF_HANDOFF="${SELF_HANDOFF:-0}"
 SELF_NAME_SEP="${SELF_NAME_SEP:--}"
 SELF_FORCE="${SELF_FORCE:-0}"
 SELF_QUIET="${SELF_QUIET:-0}"
@@ -322,14 +330,21 @@ verify() {
     mkdir -p "$out"
     trap 'rm -rf "$out"' 0 1 2 3 15
     dup="$out/dup"; outd="$out/outd"; red="$out/red"; mis="$out/mis"
+    files="$out/files"; dirs="$out/dirs"
     : > "$dup"; : > "$outd"; : > "$red"; : > "$mis"
+
+    # ---- Single-pass collection (performance) ----------------------------------
+    # Walk the tree exactly twice (files once, dirs once) and run every check
+    # against the cached listings instead of re-walking per category.
+    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o -type f -print \
+    | sort > "$files"
+    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o -type d -print \
+    | sort > "$dirs"
 
     # ---- DUPED: exact content duplicates (identical size + crc) ---------------
     # Runtime artifacts (audit log + first-run marker) are intentionally similar
     # across workspaces and are gitignored, so they are excluded from this scan.
-    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o -type f -print \
-    | sort \
-    | grep -vE '/(\.selfconstructor\.rc|\.selfconstructor\.log)$' \
+    grep -vE '/(\.selfconstructor\.rc|\.selfconstructor\.log)$' "$files" \
     | while IFS= read -r f; do cksum "$f"; done \
     | sort -k1,1 -k2,2 \
     | awk '{
@@ -342,23 +357,19 @@ verify() {
     # ---- OUTDATED -------------------------------------------------------------
     canon="$root/SelfConstructor.sh"
     if [ -f "$canon" ]; then
-        find "$root" -path '*/.git' -prune -o -path "$out" -prune -o \
-            -type f -name 'SelfConstructor.sh' -print \
+        grep '/SelfConstructor.sh$' "$files" \
         | while IFS= read -r f; do
             [ "$f" = "$canon" ] && continue
             cmp -s "$f" "$canon" || echo "$f" >> "$outd"
         done
     fi
-    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o \
-        -type f -name 'README.md' -print \
+    grep '/README.md$' "$files" \
     | while IFS= read -r f; do
         grep -q '## Contents' "$f" || echo "$f (old template)" >> "$outd"
     done
 
     # ---- REDUNDANT: generated-only workspaces ---------------------------------
-    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o -type d -print \
-    | sort \
-    | while IFS= read -r d; do
+    while IFS= read -r d; do
         [ "$d" = "$root" ] && continue
         base=$(basename "$d")
         [ -f "$d/$base.md" ] || continue
@@ -372,17 +383,16 @@ verify() {
             esac
         done
         [ "$extra" -eq 0 ] && echo "$d" >> "$red"
-    done
+    done < "$dirs"
 
     # ---- MISPLACED: "<folder>.md" convention ----------------------------------
     rootname=$(basename "$root")
-    find "$root" -path '*/.git' -prune -o -path "$out" -prune -o \
-        -type f -name '*.md' -print \
+    grep '\.md$' "$files" \
     | while IFS= read -r f; do
         d=$(dirname "$f"); b=$(basename "$f")
         folder=$(basename "$d")
         case "$b" in
-            README.md|agents.md) continue ;;
+            README.md|agents.md|PortableSessionAI.md) continue ;;
             [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].md) continue ;;
         esac
         if [ "$folder" = "." ] || [ -z "$folder" ]; then folder="$rootname"; fi
@@ -454,7 +464,7 @@ checkDocs() {
 
     tokens 'SELF_[A-Z_]+' < "$hdr" | sort -u > "$tmp/env_doc"
     tokens 'SELF_[A-Z_]+' < "$script" \
-        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
+        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_HANDOFF|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
         | sort -u > "$tmp/env_impl"
 
     say "Self.Consistency — documentation <-> script ($script)"
@@ -495,6 +505,33 @@ checkDocs() {
     trap - 0 1 2 3 15
 }
 
+# refreshHandoff([root])
+#   Repo.Optimize(performance, hand-off timing)
+#   Refreshes the volatile fields of AGENTS/PortableSessionAI.md in a single pass
+#   (one git rev-parse + one date + one sed), so the hand-off document always
+#   records the baseline tip without re-walking the tree:
+#     - "Generated"       -> now (UTC)
+#     - "last_commit"     -> current HEAD short hash
+#     - "Last pushed commit (at export)" table cell -> current HEAD short hash
+refreshHandoff() {
+    root="${1:-$SELF_DIR}"
+    [ -n "$root" ] || root="$PWD"
+    hf="$root/AGENTS/PortableSessionAI.md"
+    [ -f "$hf" ] || die "handoff: not found: $hf"
+    stamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    short=$( (cd "$root" && git rev-parse --short HEAD) 2>/dev/null || printf '%s' "unknown" )
+    tmp="$hf.tmp.$$"
+    sed \
+        -e "s|^- \\*\\*Generated:\\*\\* .*|- **Generated:** ${stamp} (UTC)|" \
+        -e "s|^last_commit=.*|last_commit=${short}|" \
+        -e "s#^| Last pushed commit (at export) | .*#| Last pushed commit (at export) | ${short} |#" \
+        "$hf" > "$tmp"
+    mv "$tmp" "$hf"
+    say "handoff refreshed: $hf"
+    say "  generated  : $stamp"
+    say "  last_commit: $short"
+}
+
 # ---- Argument parsing ---------------------------------------------------------
 parse_args() {
     while [ "$#" -gt 0 ]; do
@@ -511,6 +548,7 @@ parse_args() {
             --sync-readmes)  SELF_SYNC=1; shift ;;
             --verify)        SELF_VERIFY=1; shift ;;
             --check-docs)    SELF_CHKDOCS=1; shift ;;
+            --handoff)       SELF_HANDOFF=1; shift ;;
             --provenance)    SELF_PROVENANCE=1; shift ;;
             --no-provenance) SELF_PROVENANCE=0; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
@@ -559,6 +597,12 @@ main() {
     [ -n "$SELF_DIR" ] || SELF_DIR="$PWD"
     mkdir -p "$SELF_DIR"
     SELF_DIR=$(cd "$SELF_DIR" && pwd)
+
+    # Repo.Optimize(performance, hand-off timing)
+    if [ "$SELF_HANDOFF" -eq 1 ]; then
+        refreshHandoff "$SELF_DIR"
+        exit 0
+    fi
 
     # self.Consistency.new(verify documentation to scripts)
     if [ "$SELF_CHKDOCS" -eq 1 ]; then

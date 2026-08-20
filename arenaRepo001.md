@@ -61,6 +61,18 @@ Cross-checks the `--help` header and `AGENTS/agents.md` against the script:
 
 Result: OK — documentation matches the script (verified 2026-08-19T23:16:00Z).
 
+## Performance & hand-off timing
+
+`Repo.Optimize(performance, hand-off timing)`:
+
+- **Performance:** `--verify` now walks the tree twice (files + dirs) and runs
+  all four checks against the cached listings — 2 `find` passes instead of 5.
+- **Hand-off timing:** `./SelfConstructor.sh --handoff` refreshes
+  `AGENTS/PortableSessionAI.md` volatile fields (`Generated`, `last_commit`,
+  "Last pushed commit" row) from live git state in a single pass. Refreshed at
+  EBT (post-sync) each turn so `last_commit` always records the baseline tip a
+  new agent builds on.
+
 ## Rebuild
 
     ./SelfConstructor.sh --dir "/home/user/arenaRepo001" --name "arenaRepo001"
