@@ -4,7 +4,7 @@ Portable session export for `arenaRepo001` — the skill procedures and data
 another `agent_AI` needs to continue this conversation / development / context.
 
 - **Exported by:** `arena_AI` (Arena.ai Agent Mode)
-- **Generated:** 2026-08-20T00:33:27Z (UTC)
+- **Generated:** 2026-08-20T00:43:45Z (UTC)
 - **Session branch:** `arena/01a01c09-arenarepo001`
 - **Remote:** `https://github.com/aeihou/arenaRepo001.git`
 
@@ -17,7 +17,7 @@ another `agent_AI` needs to continue this conversation / development / context.
 | Repository | `aeihou/arenaRepo001` |
 | Working branch (fixed) | `arena/01a01c09-arenarepo001` |
 | Base branch | `main` @ `2f643c1` |
-| Last pushed commit (at export) | fecbd53 |
+| Last pushed commit (at export) | c19f3d6 |
 | Owner style | pseudocode → parametrizable POSIX `sh` artifacts |
 
 > **Rule:** always work on `arena/01a01c09-arenarepo001`. Never switch, create,
@@ -95,6 +95,7 @@ translation into the implemented `SelfConstructor.sh`:
 | `Repo.Verify(consistency().Includes("duped OR outdated OR redundant OR misplaced"))` | `--verify` scan |
 | `self.Consistency.new(verify documentation to scripts)` | `--check-docs` scan |
 | `Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables()` | `--search-hardcoded` scan; parameterize magic values into `SELF_*` defaults |
+| `Repo.Update(ForEveryFile)` | `--update`: re-sync every README + regenerate the complete file inventory |
 | `SelfDescriberRepo().Update({$thisRepo})` | update `arenaRepo001.md` after each change |
 | `AGENTS/agents.md().Update($)` | update the agent registry |
 | `arena_AI.commitAndPush()` / `Arena_AI.pushAndCommit()` | commit + push to the session branch |
@@ -110,15 +111,15 @@ Self-executing, POSIX `#!/bin/sh` (dash-safe, `set -eu`), parametrizable.
 `nameOfFolder` · `autoNameIfNeeded` · `newFile` · `initWorkspace` ·
 `initSession` (delegates to `writeReadme`) · `writeReadme` · `reloadSession` ·
 `selfConstructor` · `syncReadmes` · `verify` · `checkDocs` · `refreshHandoff` ·
-`searchHardcoded` · `invocationCommand` · `logCreatedFile` ·
-`provenanceFooter` · `tokens`.
+`searchHardcoded` · `updateEveryFile` · `classifyFile` · `injectInventory` ·
+`invocationCommand` · `logCreatedFile` · `provenanceFooter` · `tokens`.
 
 ### 4.2 CLI flags (CLI wins over env)
 
 `--dir` · `--name` · `--NameOfFolder` (`:`, `=`, space forms) · `--auto-name` ·
 `--name-sep` · `--sync-readmes` · `--verify` · `--check-docs` · `--handoff` ·
-`--search-hardcoded` · `--provenance` / `--no-provenance` · `--filename` ·
-`--readme` · `--force` · `--no-reload` · `--quiet` · `--help`.
+`--search-hardcoded` · `--update` · `--provenance` / `--no-provenance` ·
+`--filename` · `--readme` · `--force` · `--no-reload` · `--quiet` · `--help`.
 
 ### 4.3 Environment (overridable)
 
@@ -196,6 +197,9 @@ Demo workspaces (kept, flagged REDUNDANT by `--verify`): `MyTest/`,
 - `./SelfConstructor.sh --search-hardcoded` → reports literal hardcoded
   variables; after the `ReplaceFixedHarcodedVariables()` refactor it must
   report **none** (magic values live only in the `SELF_*` Defaults block).
+- `./SelfConstructor.sh --update` → `Repo.Update(ForEveryFile)`: re-syncs every
+  workspace README and regenerates the complete **File inventory** (every file,
+  classified, with the command that created it) into `arenaRepo001.md`.
 - All checks are **read-only**; always re-run them before committing changes.
 
 ---
@@ -237,7 +241,7 @@ repo=arenaRepo001
 remote=https://github.com/aeihou/arenaRepo001.git
 branch=arena/01a01c09-arenarepo001
 base=main
-last_commit=fecbd53
+last_commit=c19f3d6
 self_description=arenaRepo001.md
 agent_registry=AGENTS/agents.md
 session_log=AGENTS/session.log
@@ -248,6 +252,7 @@ check_docs=./SelfConstructor.sh --check-docs
 search_hardcoded=./SelfConstructor.sh --search-hardcoded
 sync_readmes=./SelfConstructor.sh --sync-readmes
 handoff=./SelfConstructor.sh --handoff
+update=./SelfConstructor.sh --update
 timestamp_format=ddmmaaaaHHMMSS
 ```
 

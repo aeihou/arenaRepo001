@@ -45,6 +45,9 @@
 #                           occurrences of the parameterized constants. After the
 #                           ReplaceFixedHarcodedVariables() refactor they may only
 #                           live in the Defaults block (or in comments).
+#  13. updateEveryFile   -> Repo.Update(ForEveryFile): re-sync every workspace
+#                           README and regenerate a complete file inventory into
+#                           the root self-description, so every file is described.
 #
 # Parameters (CLI wins over environment):
 #   positional arg            target directory        (default: $PWD)
@@ -63,6 +66,8 @@
 #       --handoff             refresh AGENTS/PortableSessionAI.md volatile fields
 #                             (Generated + last_commit) from live git state
 #       --search-hardcoded    report literal hardcoded variables in *.sh files
+#       --update              Repo.Update(ForEveryFile): re-sync every workspace
+#                             README + regenerate the file inventory
 #       --provenance          annotate every created file with the command that
 #                             made it (default ON; set --no-provenance to disable)
 #   -f, --filename FILE       self-description file   (env: SELF_FILENAME)
@@ -83,6 +88,7 @@
 #   ./SelfConstructor.sh --check-docs
 #   ./SelfConstructor.sh --handoff
 #   ./SelfConstructor.sh --search-hardcoded
+#   ./SelfConstructor.sh --update
 #
 # Environment (overridable; CLI wins):
 #   SELF_DIR SELF_NAME SELF_FILENAME SELF_README SELF_MARKER SELF_LOG
@@ -115,6 +121,7 @@ SELF_VERIFY="${SELF_VERIFY:-0}"
 SELF_CHKDOCS="${SELF_CHKDOCS:-0}"
 SELF_HANDOFF="${SELF_HANDOFF:-0}"
 SELF_SEARCH="${SELF_SEARCH:-0}"
+SELF_UPDATE="${SELF_UPDATE:-0}"
 SELF_NAME_SEP="${SELF_NAME_SEP:--}"
 SELF_FORCE="${SELF_FORCE:-0}"
 SELF_QUIET="${SELF_QUIET:-0}"
@@ -485,7 +492,7 @@ checkDocs() {
 
     tokens 'SELF_[A-Z_]+' < "$hdr" | sort -u > "$tmp/env_doc"
     tokens 'SELF_[A-Z_]+' < "$script" \
-        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_HANDOFF|SELF_SEARCH|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
+        | grep -vE '^(SELF_MKNAME|SELF_SYNC|SELF_VERIFY|SELF_CHKDOCS|SELF_HANDOFF|SELF_SEARCH|SELF_UPDATE|SELF_FORCE|SELF_QUIET|SELF_NO_RELOAD|SELF_RELOADED|SELF_SCRIPT|SELF_ARGV)$' \
         | sort -u > "$tmp/env_impl"
 
     say "Self.Consistency — documentation <-> script ($script)"
@@ -608,6 +615,125 @@ AGENTS/PortableSessionAI.md
     rm -f "$report"
 }
 
+# classifyFile(basename, dirname, foldername)
+#   Maps a file to a short inventory type (kept as a case-less echo).
+classifyFile() {
+    b="$1"; d="$2"; folder="$3"
+    case "$b" in
+        *.sh)                          printf 'script' ;;
+        "$SELF_README")                printf 'session entry point' ;;
+        .gitignore)                    printf 'configuration' ;;
+        "$SELF_AGENTS_FILE")           printf 'agent registry' ;;
+        "$SELF_HANDOFF_FILE")          printf 'portable session export' ;;
+        session.log)                   printf 'session log' ;;
+        [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].md)
+                                       printf 'timestamped snapshot' ;;
+        *.md)
+            if [ "$b" = "$folder.md" ]; then printf 'self-description'
+            else printf 'documentation'; fi ;;
+        *)                             printf 'asset' ;;
+    esac
+}
+
+# injectInventory(target, inventory)
+#   Inserts (or replaces, between markers) the generated file-inventory section
+#   into a markdown document. POSIX awk, no GNU extensions.
+injectInventory() {
+    target="$1"; inv="$2"; itmp="$target.itmp.$$"
+    if grep -q '^<!-- file-inventory:start -->' "$target"; then
+        awk -v inv="$inv" '
+            /^<!-- file-inventory:start -->/ { print; while ((getline line < inv) > 0) print line; close(inv); insection = 1; next }
+            /^<!-- file-inventory:end -->/ { insection = 0; print; next }
+            insection { next }
+            { print }
+        ' "$target" > "$itmp"
+    elif grep -q '^## Rebuild' "$target"; then
+        awk -v inv="$inv" '
+            /^## Rebuild/ {
+                print "<!-- file-inventory:start -->"
+                while ((getline line < inv) > 0) print line
+                close(inv)
+                print "<!-- file-inventory:end -->"
+                print ""
+                print
+                next
+            }
+            { print }
+        ' "$target" > "$itmp"
+    else
+        {
+            cat "$target"
+            printf '\n<!-- file-inventory:start -->\n'
+            cat "$inv"
+            printf '<!-- file-inventory:end -->\n'
+        } > "$itmp"
+    fi
+    mv "$itmp" "$target"
+}
+
+# updateEveryFile([root])
+#   Repo.Update(ForEveryFile)
+#   1. Re-syncs every workspace README from its <name>.md (current state).
+#   2. Builds a complete inventory of every file under root (excluding .git and
+#      runtime artifacts), classifying it and attaching the command that created
+#      it (from the nearest .selfconstructor.log, else "committed").
+#   3. Injects that inventory into the root self-description (<rootname>.md).
+updateEveryFile() {
+    root="${1:-$SELF_DIR}"
+    [ -n "$root" ] || root="$PWD"
+    selfdesc="$root/$(basename "$root").md"
+    [ -f "$selfdesc" ] || die "update: self-description not found: $selfdesc"
+
+    utmp="$root/.update.$$"
+    mkdir -p "$utmp"
+    trap 'rm -rf "$utmp"' 0 1 2 3 15
+    uinv="$utmp/inventory"
+
+    # 1. every workspace README up to date
+    syncReadmes "$root"
+
+    # 2. complete file inventory
+    {
+        printf '## File inventory (ForEveryFile)\n\n'
+        printf 'Every file in the repository, auto-generated by `Repo.Update(ForEveryFile)`.\n\n'
+        printf '| File | Type | Created by |\n|---|---|---|\n'
+        find "$root" -name "$SELF_GITDIR" -prune -o -path "$utmp" -prune -o -type f -print \
+        | sort \
+        | while IFS= read -r f; do
+            b=$(basename "$f")
+            case "$b" in
+                "$SELF_MARKER"|"$SELF_LOG") continue ;;
+            esac
+            rel=${f#"$root"/}
+            folder=$(basename "$(dirname "$f")")
+            type=$(classifyFile "$b" "$(dirname "$f")" "$folder")
+            prov="committed"
+            d=$(dirname "$f")
+            while : ; do
+                if [ -f "$d/$SELF_LOG" ]; then
+                    p=$(grep -F "$b via:" "$d/$SELF_LOG" 2>/dev/null | tail -1 | sed 's/^.* via: //')
+                    [ -n "$p" ] && prov="$p"
+                    break
+                fi
+                [ "$d" = "$root" ] && break
+                [ "$d" = "/" ] && break
+                d=$(dirname "$d")
+            done
+            printf '| `%s` | %s | %s |\n' "$rel" "$type" "$prov"
+        done
+        printf '\n_Generated %s (%s)._ \n' "$(date -u +"$SELF_ISO_FMT")" "$SELF_SCRIPT_NAME"
+    } > "$uinv"
+
+    # 3. inject into the root self-description
+    injectInventory "$selfdesc" "$uinv"
+
+    count=$(grep -c '^| `' "$uinv")
+    say "updated: $selfdesc"
+    say "inventory: $count file(s) described"
+    rm -rf "$utmp"
+    trap - 0 1 2 3 15
+}
+
 # ---- Argument parsing ---------------------------------------------------------
 parse_args() {
     while [ "$#" -gt 0 ]; do
@@ -626,6 +752,7 @@ parse_args() {
             --check-docs)    SELF_CHKDOCS=1; shift ;;
             --handoff)       SELF_HANDOFF=1; shift ;;
             --search-hardcoded) SELF_SEARCH=1; shift ;;
+            --update)        SELF_UPDATE=1; shift ;;
             --provenance)    SELF_PROVENANCE=1; shift ;;
             --no-provenance) SELF_PROVENANCE=0; shift ;;
             --name-sep)      [ "$#" -ge 2 ] || die "missing value for $1"; SELF_NAME_SEP="$2"; shift 2 ;;
@@ -684,6 +811,12 @@ main() {
     # Repo.SearchForHardodedVariables()
     if [ "$SELF_SEARCH" -eq 1 ]; then
         searchHardcoded "$SELF_DIR"
+        exit 0
+    fi
+
+    # Repo.Update(ForEveryFile)
+    if [ "$SELF_UPDATE" -eq 1 ]; then
+        updateEveryFile "$SELF_DIR"
         exit 0
     fi
 

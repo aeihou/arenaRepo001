@@ -105,3 +105,24 @@ Repo.SearchForHardodedVariables().ReplaceFixedHarcodedVariables();
   - result: --search-hardcoded reports no literals; --check-docs green;
     --verify unchanged (4 demo workspaces); functional self-construct OK
 - EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+---
+
+## userPrompt (next)
+
+Repo.Update(ForEveryFile);
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): verified local HEAD == origin (c19f3d6) — synced
+- EBT.DescribeMe(auto): self-description before acting
+- Work:
+  - new ./SelfConstructor.sh --update (updateEveryFile(), POSIX):
+    1. re-sync every workspace README (--sync-readmes pass)
+    2. build a complete file inventory (every file classified by type +
+       provenance from nearest .selfconstructor.log, else 'committed')
+    3. inject it into arenaRepo001.md between file-inventory markers
+  - fixed a POSIX temp-variable collision (injectInventory reused 'tmp'),
+    which had leaked .update.<pid> dirs; renamed to itmp/utmp/uinv
+  - result: inventory == 19 files == git ls-files; no temp leak
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>

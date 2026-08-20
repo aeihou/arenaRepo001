@@ -12,7 +12,7 @@ Self-described workspace, initialized by `SelfConstructor.sh`.
 
 ## Last updated
 
-- 2026-08-19T23:01:19Z
+- 2026-08-20T00:42:45Z
 
 ## Usage
 
@@ -21,5 +21,5 @@ Self-described workspace, initialized by `SelfConstructor.sh`.
 ## Created by
 
 - Script: SelfConstructor.sh
-- Command: ./SelfConstructor.sh --sync-readmes
-- Timestamp: 2026-08-19T23:01:19Z
+- Command: ./SelfConstructor.sh --update
+- Timestamp: 2026-08-20T00:42:45Z
