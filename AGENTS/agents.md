@@ -8,7 +8,7 @@ Self-described agent registry for `arenaRepo001`. Updated by `arena_AI`.
 - **Role:** Maintainer and executor of this repository. Converts user pseudocode
   into runnable, parametrizable artifacts and keeps the repo self-describing.
 - **Session branch:** `arena/01a01c09-arenarepo001`
-- **Last updated:** 2026-08-19T23:44:00Z (`Repo.Update(ForEveryFile)`: `--update` re-syncs READMEs + regenerates the complete file inventory)
+- **Last updated:** 2026-08-20T01:01:47Z (added `AGENTS/SessionHand-off.md`; `--handoff` now refreshes both handoff docs)
 
 ## Lifecycle hooks — EBT / EAT
 
@@ -29,9 +29,10 @@ Pipeline applied on every task:
    `git add -A && git commit -m "<msg>" && git push origin <branch>`.
 4. **ExportSession("userPrompt, log.init()")** — append the session record
    (the user prompt + an initialized log entry) to `AGENTS/session.log`.
-5. **Hand-off timing** — refresh `AGENTS/PortableSessionAI.md` at EBT (right
-   after Synch) via `./SelfConstructor.sh --handoff`, so its `last_commit`
-   always records the baseline tip a new agent builds on.
+5. **Hand-off timing** — refresh the handoff docs (`AGENTS/PortableSessionAI.md`
+   + `AGENTS/SessionHand-off.md`) at EBT (right after Synch) via
+   `./SelfConstructor.sh --handoff`, so their `last_commit` always records the
+   baseline tip a new agent builds on.
 
 ## ExecuteBeforeThinking.DescribeMe(auto)
 
@@ -69,6 +70,7 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
 | `AGENTS/agents.md` | This agent registry |
 | `AGENTS/README.md` | AGENTS workspace entry point (links `agents.md`) |
 | `AGENTS/PortableSessionAI.md` | Portable session export (procedures + data to continue the work) |
+| `AGENTS/SessionHand-off.md` | Essential hand-off: data + procedures to continue this session/context |
 | `AGENTS/session.log` | Session export: `userPrompt` + `log.init()` (via `ExportSession`) |
 | `AGENTS/<ddmmaaaaHHMMSS>.md` | Timestamped self-construction snapshots |
 | `SRC/Tools/` | Self-constructed tools workspace (`Tools.md`, `README.md`) |
@@ -110,7 +112,8 @@ describe itself (`DescribeMe(auto)`) so the session stays self-accountable:
   POSIX cross-check of the --help header + AGENTS/agents.md against the flags,
   env vars and primitives the script actually implements),
   `refreshHandoff()` (`Repo.Optimize(performance, hand-off timing)` — refresh
-  `AGENTS/PortableSessionAI.md` volatile fields from live git state in one pass),
+  `AGENTS/PortableSessionAI.md` + `AGENTS/SessionHand-off.md` volatile fields
+  from live git state in one pass),
   `searchHardcoded()` (`Repo.SearchForHardodedVariables()` — report literal
   occurrences of the parameterized constants; after
   `ReplaceFixedHarcodedVariables()` they may only live in the Defaults block),

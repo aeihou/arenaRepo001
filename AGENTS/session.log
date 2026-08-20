@@ -126,3 +126,26 @@ Repo.Update(ForEveryFile);
     which had leaked .update.<pid> dirs; renamed to itmp/utmp/uinv
   - result: inventory == 19 files == git ls-files; no temp leak
 - EAT.Commit&&Push(): committed + pushed to origin/<branch>
+
+---
+
+## userPrompt (next)
+
+NewFile(/AGENTS/SessionHand-off.md).Write("The essential data and procedures for another agent to continue this session/context").()
+
+## Lifecycle applied
+
+- EBT.Synch(Repo): recovered local (reset to 2f643c1) to true remote tip f0c7bc1
+- EBT.DescribeMe(auto): self-description before acting
+- Work:
+  - created AGENTS/SessionHand-off.md: the essential data + procedures to
+    continue this session/context (EBT synch + stale-ref pitfall, pseudocode->engine
+    mapping, SelfConstructor.sh quick ref, EAT, gates, data export, gotchas)
+  - wired into hand-off timing: refreshHandoff() now refreshes BOTH handoff docs
+    (PortableSessionAI.md + SessionHand-off.md) from live git state
+  - verify() exempts SessionHand-off.md from the <folder>.md rule (intentional)
+  - classifyFile() types it as 'session hand-off'; --update inventory includes it
+  - checkDocs alias table extended: SearchForHardodedVariables()/ReplaceFixedHarcodedVariables()
+    -> searchHardcoded (fixes 2 documented-but-undefined findings)
+  - search TOKENS extended with 'SessionHand-off.md'
+- EAT.Commit&&Push(): committed + pushed to origin/<branch>

@@ -4,9 +4,13 @@ Portable session export for `arenaRepo001` — the skill procedures and data
 another `agent_AI` needs to continue this conversation / development / context.
 
 - **Exported by:** `arena_AI` (Arena.ai Agent Mode)
-- **Generated:** 2026-08-20T00:43:45Z (UTC)
+- **Generated:** 2026-08-20T01:01:47Z (UTC)
 - **Session branch:** `arena/01a01c09-arenarepo001`
 - **Remote:** `https://github.com/aeihou/arenaRepo001.git`
+
+> **Companion:** the essential quick-reference hand-off lives at
+> [`AGENTS/SessionHand-off.md`](SessionHand-off.md). This file is the full
+> deep-dive; both are refreshed together by `./SelfConstructor.sh --handoff`.
 
 ---
 
@@ -17,7 +21,7 @@ another `agent_AI` needs to continue this conversation / development / context.
 | Repository | `aeihou/arenaRepo001` |
 | Working branch (fixed) | `arena/01a01c09-arenarepo001` |
 | Base branch | `main` @ `2f643c1` |
-| Last pushed commit (at export) | c19f3d6 |
+| Last pushed commit (at export) | f0c7bc1 |
 | Owner style | pseudocode → parametrizable POSIX `sh` artifacts |
 
 > **Rule:** always work on `arena/01a01c09-arenarepo001`. Never switch, create,
@@ -241,7 +245,7 @@ repo=arenaRepo001
 remote=https://github.com/aeihou/arenaRepo001.git
 branch=arena/01a01c09-arenarepo001
 base=main
-last_commit=c19f3d6
+last_commit=f0c7bc1
 self_description=arenaRepo001.md
 agent_registry=AGENTS/agents.md
 session_log=AGENTS/session.log

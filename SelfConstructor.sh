@@ -93,8 +93,8 @@
 # Environment (overridable; CLI wins):
 #   SELF_DIR SELF_NAME SELF_FILENAME SELF_README SELF_MARKER SELF_LOG
 #   SELF_PROVENANCE SELF_AUTO_NAME SELF_NAME_SEP
-#   SELF_AGENTS_DIR SELF_AGENTS_FILE SELF_HANDOFF_FILE SELF_SCRIPT_NAME
-#   SELF_GITDIR SELF_TS_FMT SELF_ISO_FMT
+#   SELF_AGENTS_DIR SELF_AGENTS_FILE SELF_HANDOFF_FILE SELF_SESSION_HANDOFF
+#   SELF_SCRIPT_NAME SELF_GITDIR SELF_TS_FMT SELF_ISO_FMT
 # ==============================================================================
 
 set -eu
@@ -109,6 +109,7 @@ SELF_LOG="${SELF_LOG:-.selfconstructor.log}"
 SELF_AGENTS_DIR="${SELF_AGENTS_DIR:-AGENTS}"
 SELF_AGENTS_FILE="${SELF_AGENTS_FILE:-agents.md}"
 SELF_HANDOFF_FILE="${SELF_HANDOFF_FILE:-PortableSessionAI.md}"
+SELF_SESSION_HANDOFF="${SELF_SESSION_HANDOFF:-SessionHand-off.md}"
 SELF_SCRIPT_NAME="${SELF_SCRIPT_NAME:-SelfConstructor.sh}"
 SELF_GITDIR="${SELF_GITDIR:-.git}"
 SELF_TS_FMT="${SELF_TS_FMT:-%d%m%Y%H%M%S}"
@@ -417,7 +418,7 @@ verify() {
         d=$(dirname "$f"); b=$(basename "$f")
         folder=$(basename "$d")
         if [ "$b" = "$SELF_README" ] || [ "$b" = "$SELF_AGENTS_FILE" ] \
-           || [ "$b" = "$SELF_HANDOFF_FILE" ]; then
+           || [ "$b" = "$SELF_HANDOFF_FILE" ] || [ "$b" = "$SELF_SESSION_HANDOFF" ]; then
             continue
         fi
         case "$b" in
@@ -521,6 +522,8 @@ checkDocs() {
                 Reload)                  fn=reloadSession ;; # newSession.Reload()
                 EveryNewFileConstructor) fn=newFile ;;       # For EveryNewFileConstructor()
                 consistency)             fn=verify ;;        # Repo.Verify(consistency())
+                SearchForHardodedVariables)    fn=searchHardcoded ;; # Repo.SearchForHardodedVariables()
+                ReplaceFixedHarcodedVariables) fn=searchHardcoded ;; # ...ReplaceFixedHarcodedVariables()
             esac
             grep -qE "^$fn\(\)" "$script" || echo "  - $fn()"
         done
@@ -544,18 +547,21 @@ checkDocs() {
 refreshHandoff() {
     root="${1:-$SELF_DIR}"
     [ -n "$root" ] || root="$PWD"
-    hf="$root/$SELF_AGENTS_DIR/$SELF_HANDOFF_FILE"
-    [ -f "$hf" ] || die "handoff: not found: $hf"
     stamp=$(date -u +"$SELF_ISO_FMT")
     short=$( (cd "$root" && git rev-parse --short HEAD) 2>/dev/null || printf '%s' "unknown" )
-    tmp="$hf.tmp.$$"
-    sed \
-        -e "s|^- \\*\\*Generated:\\*\\* .*|- **Generated:** ${stamp} (UTC)|" \
-        -e "s|^last_commit=.*|last_commit=${short}|" \
-        -e "s#^| Last pushed commit (at export) | .*#| Last pushed commit (at export) | ${short} |#" \
-        "$hf" > "$tmp"
-    mv "$tmp" "$hf"
-    say "handoff refreshed: $hf"
+    for hf in \
+        "$root/$SELF_AGENTS_DIR/$SELF_HANDOFF_FILE" \
+        "$root/$SELF_AGENTS_DIR/$SELF_SESSION_HANDOFF" ; do
+        [ -f "$hf" ] || continue
+        tmp="$hf.tmp.$$"
+        sed \
+            -e "s|^- \\*\\*Generated:\\*\\* .*|- **Generated:** ${stamp} (UTC)|" \
+            -e "s|^last_commit=.*|last_commit=${short}|" \
+            -e "s#^| Last pushed commit (at export) | .*#| Last pushed commit (at export) | ${short} |#" \
+            "$hf" > "$tmp"
+        mv "$tmp" "$hf"
+        say "handoff refreshed: $hf"
+    done
     say "  generated  : $stamp"
     say "  last_commit: $short"
 }
@@ -585,6 +591,7 @@ README.md
 SelfConstructor.sh
 AGENTS/agents.md
 AGENTS/PortableSessionAI.md
+SessionHand-off.md
 %d%m%Y%H%M%S
 %Y-%m-%dT%H:%M:%SZ'
 # >>>search-tokens
@@ -625,6 +632,7 @@ classifyFile() {
         .gitignore)                    printf 'configuration' ;;
         "$SELF_AGENTS_FILE")           printf 'agent registry' ;;
         "$SELF_HANDOFF_FILE")          printf 'portable session export' ;;
+        "$SELF_SESSION_HANDOFF")       printf 'session hand-off' ;;
         session.log)                   printf 'session log' ;;
         [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].md)
                                        printf 'timestamped snapshot' ;;
